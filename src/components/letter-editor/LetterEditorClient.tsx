@@ -1,0 +1,364 @@
+'use client'
+
+import { useCallback, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useDropzone } from 'react-dropzone'
+import { createClient } from '@/lib/supabase/client'
+import { Address, FontFamily, FontSize, LayoutId, PhotoItem, Profile } from '@/types'
+import { LetterPreview } from './LetterPreview'
+import { LAYOUTS } from './layouts'
+import { PreciousPostLogo } from '@/components/Logo'
+import Link from 'next/link'
+import { getCurrentMonthYear } from '@/lib/utils'
+
+interface Props {
+  profile: Profile
+  addresses: Address[]
+  monthYear: string
+}
+
+const MAX_PHOTOS = 6
+const MAX_CHARS = 2500
+const PREVIEW_SCALE = 0.48
+
+export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
+  const router = useRouter()
+  const previewRef = useRef<HTMLDivElement>(null)
+
+  const [photos, setPhotos] = useState<PhotoItem[]>([])
+  const [layout, setLayout] = useState<LayoutId>('hero-2-below')
+  const [photoAreaHeight, setPhotoAreaHeight] = useState(45)
+  const [font, setFont] = useState<FontFamily>('serif')
+  const [fontSize, setFontSize] = useState<FontSize>('medium')
+  const [letterText, setLetterText] = useState('')
+  const [addressId, setAddressId] = useState<string>(addresses[0]?.id ?? '')
+  const [showAddAddress, setShowAddAddress] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+
+  const selectedAddress = addresses.find(a => a.id === addressId)
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const remaining = MAX_PHOTOS - photos.length
+    const files = acceptedFiles.slice(0, remaining)
+    if (!files.length) return
+
+    setUploadingPhotos(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const newPhotos: PhotoItem[] = []
+    for (const file of files) {
+      const ext = file.name.split('.').pop()
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error } = await supabase.storage.from('letter-photos').upload(path, file)
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('letter-photos').getPublicUrl(path)
+        newPhotos.push({ id: path, url: publicUrl, x: 50, y: 50, width: 100, height: 100 })
+      }
+    }
+    setPhotos(prev => [...prev, ...newPhotos])
+    setUploadingPhotos(false)
+  }, [photos.length])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/*': [] },
+    maxFiles: MAX_PHOTOS,
+    disabled: photos.length >= MAX_PHOTOS || uploadingPhotos,
+  })
+
+  function removePhoto(id: string) {
+    setPhotos(prev => prev.filter(p => p.id !== id))
+  }
+
+  function adjustPhotoPosition(id: string, axis: 'x' | 'y', value: number) {
+    setPhotos(prev => prev.map(p => p.id === id ? { ...p, [axis]: value } : p))
+  }
+
+  async function handleSubmit() {
+    if (!addressId) { alert('Please select a recipient.'); return }
+    if (!letterText.trim()) { alert('Please write your letter.'); return }
+    setSubmitting(true)
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data: letter, error } = await supabase.from('letters').insert({
+      user_id: user.id,
+      address_id: addressId,
+      photos,
+      layout,
+      photo_area_height: photoAreaHeight,
+      font,
+      font_size: fontSize,
+      letter_text: letterText,
+      status: 'submitted',
+      month_year: getCurrentMonthYear(),
+      submitted_at: new Date().toISOString(),
+    }).select().single()
+
+    if (error) { alert('Error submitting letter: ' + error.message); setSubmitting(false); return }
+
+    // Increment monthly usage
+    await supabase.rpc('increment_usage', { p_user_id: user.id, p_month_year: monthYear })
+
+    // Send SMS confirmation
+    await fetch('/api/sms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'submitted', letterId: letter.id }),
+    })
+
+    router.push('/dashboard?submitted=1')
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-blush)' }}>
+      {/* Nav */}
+      <nav className="bg-white border-b px-4 py-3 shrink-0" style={{ borderColor: 'var(--color-blush-dark)' }}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <PreciousPostLogo size="sm" />
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>← Dashboard</Link>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !addressId || !letterText.trim()}
+              className="px-5 py-2 rounded-full text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
+              style={{ backgroundColor: 'var(--color-mauve)' }}
+            >
+              {submitting ? 'Submitting…' : 'Submit for printing →'}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Controls sidebar */}
+        <div className="w-80 shrink-0 overflow-y-auto bg-white border-r p-5 space-y-6" style={{ borderColor: 'var(--color-blush-dark)' }}>
+
+          {/* Recipient */}
+          <Section title="Recipient">
+            {addresses.length === 0 ? (
+              <p className="text-xs mb-2" style={{ color: 'var(--color-charcoal-light)' }}>No addresses saved yet.</p>
+            ) : (
+              <select
+                value={addressId}
+                onChange={e => setAddressId(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border text-sm outline-none"
+                style={{ borderColor: '#e5e7eb' }}
+              >
+                <option value="">Select recipient…</option>
+                {addresses.map(a => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={() => setShowAddAddress(!showAddAddress)}
+              className="text-xs mt-1 underline"
+              style={{ color: 'var(--color-mauve)' }}
+            >
+              + Add new address
+            </button>
+            {showAddAddress && (
+              <QuickAddAddress onSave={(addr) => {
+                addresses.push(addr)
+                setAddressId(addr.id)
+                setShowAddAddress(false)
+              }} />
+            )}
+          </Section>
+
+          {/* Photos */}
+          <Section title={`Photos (${photos.length}/${MAX_PHOTOS})`}>
+            <div
+              {...getRootProps()}
+              className="border-2 border-dashed rounded-xl p-4 text-center text-sm cursor-pointer transition-colors"
+              style={{
+                borderColor: isDragActive ? 'var(--color-mauve)' : '#e5e7eb',
+                backgroundColor: isDragActive ? 'var(--color-blush)' : 'transparent',
+                color: 'var(--color-charcoal-light)',
+              }}
+            >
+              <input {...getInputProps()} />
+              {uploadingPhotos ? 'Uploading…' : isDragActive ? 'Drop here!' : 'Drop photos or click to upload'}
+            </div>
+
+            {photos.length > 0 && (
+              <div className="space-y-3 mt-3">
+                {photos.map((photo, i) => (
+                  <div key={photo.id} className="rounded-xl overflow-hidden border" style={{ borderColor: '#e5e7eb' }}>
+                    <div className="relative">
+                      <img src={photo.url} alt="" className="w-full h-20 object-cover" style={{ objectPosition: `${photo.x}% ${photo.y}%` }} />
+                      <button
+                        onClick={() => removePhoto(photo.id)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"
+                      >×</button>
+                    </div>
+                    <div className="p-2 space-y-1">
+                      <label className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>Horizontal focus</label>
+                      <input type="range" min={0} max={100} value={photo.x} onChange={e => adjustPhotoPosition(photo.id, 'x', +e.target.value)} className="w-full" />
+                      <label className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>Vertical focus</label>
+                      <input type="range" min={0} max={100} value={photo.y} onChange={e => adjustPhotoPosition(photo.id, 'y', +e.target.value)} className="w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          {/* Layout */}
+          <Section title="Layout">
+            <div className="grid grid-cols-2 gap-2">
+              {LAYOUTS.map(l => (
+                <button
+                  key={l.id}
+                  onClick={() => setLayout(l.id)}
+                  className="px-2 py-2 rounded-xl border text-xs transition-colors text-left"
+                  style={{
+                    borderColor: layout === l.id ? 'var(--color-mauve)' : '#e5e7eb',
+                    backgroundColor: layout === l.id ? 'var(--color-blush)' : 'white',
+                    color: layout === l.id ? 'var(--color-mauve)' : 'var(--color-charcoal)',
+                  }}
+                >
+                  <span className="font-medium">{l.name}</span>
+                  <br />
+                  <span className="opacity-60">{l.description}</span>
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {/* Photo area size */}
+          <Section title={`Photo area height: ${photoAreaHeight}%`}>
+            <input
+              type="range" min={20} max={70} value={photoAreaHeight}
+              onChange={e => setPhotoAreaHeight(+e.target.value)}
+              className="w-full"
+            />
+          </Section>
+
+          {/* Font */}
+          <Section title="Font style">
+            <div className="grid grid-cols-3 gap-2">
+              {(['handwritten', 'serif', 'sans'] as FontFamily[]).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFont(f)}
+                  className="py-2 px-1 rounded-xl border text-xs capitalize transition-colors"
+                  style={{
+                    borderColor: font === f ? 'var(--color-mauve)' : '#e5e7eb',
+                    backgroundColor: font === f ? 'var(--color-blush)' : 'white',
+                    color: font === f ? 'var(--color-mauve)' : 'var(--color-charcoal)',
+                    fontFamily: f === 'handwritten' ? "'Caveat', cursive" : f === 'serif' ? "'Playfair Display', serif" : 'system-ui',
+                  }}
+                >
+                  {f === 'handwritten' ? 'Handwritten' : f === 'serif' ? 'Serif' : 'Sans'}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {/* Font size */}
+          <Section title="Font size">
+            <div className="grid grid-cols-3 gap-2">
+              {(['small', 'medium', 'large'] as FontSize[]).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setFontSize(s)}
+                  className="py-2 rounded-xl border text-xs capitalize transition-colors"
+                  style={{
+                    borderColor: fontSize === s ? 'var(--color-mauve)' : '#e5e7eb',
+                    backgroundColor: fontSize === s ? 'var(--color-blush)' : 'white',
+                    color: fontSize === s ? 'var(--color-mauve)' : 'var(--color-charcoal)',
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {/* Letter text */}
+          <Section title={`Your letter (${letterText.length}/${MAX_CHARS})`}>
+            <textarea
+              value={letterText}
+              onChange={e => setLetterText(e.target.value.slice(0, MAX_CHARS))}
+              placeholder="Write your letter here…"
+              rows={8}
+              className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
+              style={{ borderColor: '#e5e7eb', fontFamily: font === 'handwritten' ? "'Caveat', cursive" : font === 'serif' ? "'Playfair Display', serif" : 'system-ui' }}
+            />
+          </Section>
+        </div>
+
+        {/* Preview panel */}
+        <div className="flex-1 overflow-auto p-6 flex flex-col items-center">
+          <p className="text-xs mb-4 font-medium" style={{ color: 'var(--color-charcoal-light)' }}>
+            Live preview — 8.5 × 11&quot; letter
+          </p>
+          <div style={{ width: 816 * PREVIEW_SCALE, height: 1056 * PREVIEW_SCALE, boxShadow: '0 4px 32px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden' }}>
+            <LetterPreview
+              ref={previewRef}
+              layout={layout}
+              photos={photos}
+              photoAreaHeight={photoAreaHeight}
+              photoAreaWidth={100}
+              font={font}
+              fontSize={fontSize}
+              letterText={letterText}
+              senderName={profile.name}
+              address={selectedAddress}
+              scale={PREVIEW_SCALE}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-charcoal-light)' }}>{title}</h3>
+      {children}
+    </div>
+  )
+}
+
+function QuickAddAddress({ onSave }: { onSave: (addr: Address) => void }) {
+  const [form, setForm] = useState({ name: '', address_line1: '', city: '', state: '', zip: '', country: 'US' })
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    const supabase = createClient()
+    const { data } = await supabase.from('addresses').insert(form).select().single()
+    if (data) onSave(data as Address)
+    setSaving(false)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-2 space-y-2 bg-gray-50 p-3 rounded-xl">
+      {(['name', 'address_line1', 'city', 'state', 'zip'] as const).map(field => (
+        <input
+          key={field}
+          placeholder={field.replace('_', ' ')}
+          value={form[field as keyof typeof form]}
+          onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+          required={field !== 'zip' || field === 'zip'}
+          className="w-full px-2 py-1.5 rounded-lg border text-xs outline-none"
+          style={{ borderColor: '#e5e7eb' }}
+        />
+      ))}
+      <button type="submit" disabled={saving} className="w-full py-1.5 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: 'var(--color-mauve)' }}>
+        {saving ? 'Saving…' : 'Save address'}
+      </button>
+    </form>
+  )
+}

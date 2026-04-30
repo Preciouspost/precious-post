@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-blush: #F9EDE8;
+  --color-blush-dark: #f0d8cf;
+  --color-mauve: #A07872;
+  --color-mauve-dark: #8a5f59;
+  --color-charcoal: #4A4A4A;
+  --color-charcoal-light: #6b6b6b;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-charcoal);
+  background: #ffffff;
 }
+
+/* Letter preview fonts */
+.font-letter-handwritten {
+  font-family: 'Caveat', cursive;
+}
+.font-letter-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+.font-letter-sans {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.font-size-small  { font-size: 12px; line-height: 1.65; }
+.font-size-medium { font-size: 15px; line-height: 1.75; }
+.font-size-large  { font-size: 18px; line-height: 1.85; }
