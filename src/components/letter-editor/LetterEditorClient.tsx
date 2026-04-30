@@ -35,6 +35,8 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
   const [showAddAddress, setShowAddAddress] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const dragIndexRef = useRef<number | null>(null)
 
   const selectedAddress = addresses.find(a => a.id === addressId)
 
@@ -77,6 +79,30 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
     setPhotos(prev => prev.map(p => p.id === id ? { ...p, [axis]: value } : p))
   }
 
+  // Drag-to-reorder handlers
+  function handleDragStart(index: number) {
+    dragIndexRef.current = index
+  }
+
+  function handleDragEnter(index: number) {
+    setDragOverIndex(index)
+  }
+
+  function handleDragEnd() {
+    const from = dragIndexRef.current
+    const to = dragOverIndex
+    if (from !== null && to !== null && from !== to) {
+      setPhotos(prev => {
+        const next = [...prev]
+        const [moved] = next.splice(from, 1)
+        next.splice(to, 0, moved)
+        return next
+      })
+    }
+    dragIndexRef.current = null
+    setDragOverIndex(null)
+  }
+
   async function handleSubmit() {
     if (!addressId) { alert('Please select a recipient.'); return }
     if (!letterText.trim()) { alert('Please write your letter.'); return }
@@ -102,10 +128,8 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
 
     if (error) { alert('Error submitting letter: ' + error.message); setSubmitting(false); return }
 
-    // Increment monthly usage
     await supabase.rpc('increment_usage', { p_user_id: user.id, p_month_year: monthYear })
 
-    // Send SMS confirmation
     await fetch('/api/sms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -116,8 +140,10 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-blush)' }}>
-      {/* Nav */}
+    // Full viewport height — nothing outside scrolls
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--color-blush)' }}>
+
+      {/* Nav — fixed height */}
       <nav className="bg-white border-b px-4 py-3 shrink-0" style={{ borderColor: 'var(--color-blush-dark)' }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <PreciousPostLogo size="sm" />
@@ -135,10 +161,19 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
         </div>
       </nav>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Controls sidebar */}
-        <div className="w-80 shrink-0 overflow-y-auto bg-white border-r p-5 space-y-6" style={{ borderColor: 'var(--color-blush-dark)' }}>
+      {/* Two-panel layout — fills all remaining height */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
 
+        {/* LEFT: sidebar scrolls independently */}
+        <div
+          className="bg-white border-r p-5 space-y-6"
+          style={{
+            width: 320,
+            flexShrink: 0,
+            overflowY: 'auto',
+            borderColor: 'var(--color-blush-dark)',
+          }}
+        >
           {/* Recipient */}
           <Section title="Recipient">
             {addresses.length === 0 ? (
@@ -172,6 +207,15 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
             )}
           </Section>
 
+          {/* Photo area height — ABOVE photos */}
+          <Section title={`Photo area height: ${photoAreaHeight}%`}>
+            <input
+              type="range" min={20} max={70} value={photoAreaHeight}
+              onChange={e => setPhotoAreaHeight(+e.target.value)}
+              className="w-full"
+            />
+          </Section>
+
           {/* Photos */}
           <Section title={`Photos (${photos.length}/${MAX_PHOTOS})`}>
             <div
@@ -189,9 +233,28 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
 
             {photos.length > 0 && (
               <div className="space-y-3 mt-3">
+                <p className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>
+                  ☰ Drag photos to reorder slots
+                </p>
                 {photos.map((photo, i) => (
-                  <div key={photo.id} className="rounded-xl overflow-hidden border" style={{ borderColor: '#e5e7eb' }}>
+                  <div
+                    key={photo.id}
+                    draggable
+                    onDragStart={() => handleDragStart(i)}
+                    onDragEnter={() => handleDragEnter(i)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={e => e.preventDefault()}
+                    className="rounded-xl overflow-hidden border transition-all cursor-grab active:cursor-grabbing"
+                    style={{
+                      borderColor: dragOverIndex === i ? 'var(--color-mauve)' : '#e5e7eb',
+                      opacity: dragIndexRef.current === i ? 0.5 : 1,
+                      boxShadow: dragOverIndex === i ? '0 0 0 2px var(--color-mauve)' : 'none',
+                    }}
+                  >
                     <div className="relative">
+                      <div className="absolute top-1 left-1 bg-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow" style={{ color: 'var(--color-mauve)' }}>
+                        {i + 1}
+                      </div>
                       <img src={photo.url} alt="" className="w-full h-20 object-cover" style={{ objectPosition: `${photo.x}% ${photo.y}%` }} />
                       <button
                         onClick={() => removePhoto(photo.id)}
@@ -230,15 +293,6 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
                 </button>
               ))}
             </div>
-          </Section>
-
-          {/* Photo area size */}
-          <Section title={`Photo area height: ${photoAreaHeight}%`}>
-            <input
-              type="range" min={20} max={70} value={photoAreaHeight}
-              onChange={e => setPhotoAreaHeight(+e.target.value)}
-              className="w-full"
-            />
           </Section>
 
           {/* Font */}
@@ -288,19 +342,38 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
               value={letterText}
               onChange={e => setLetterText(e.target.value.slice(0, MAX_CHARS))}
               placeholder="Write your letter here…"
-              rows={8}
+              rows={10}
               className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
               style={{ borderColor: '#e5e7eb', fontFamily: font === 'handwritten' ? "'Caveat', cursive" : font === 'serif' ? "'Playfair Display', serif" : 'system-ui' }}
             />
           </Section>
         </div>
 
-        {/* Preview panel */}
-        <div className="flex-1 overflow-auto p-6 flex flex-col items-center">
-          <p className="text-xs mb-4 font-medium" style={{ color: 'var(--color-charcoal-light)' }}>
+        {/* RIGHT: preview — never scrolls, always visible */}
+        <div
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <p className="text-xs mb-4 font-medium shrink-0" style={{ color: 'var(--color-charcoal-light)' }}>
             Live preview — 8.5 × 11&quot; letter
           </p>
-          <div style={{ width: 816 * PREVIEW_SCALE, height: 1056 * PREVIEW_SCALE, boxShadow: '0 4px 32px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden' }}>
+          <div
+            style={{
+              width: 816 * PREVIEW_SCALE,
+              height: 1056 * PREVIEW_SCALE,
+              boxShadow: '0 4px 32px rgba(0,0,0,0.12)',
+              borderRadius: 4,
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}
+          >
             <LetterPreview
               ref={previewRef}
               layout={layout}
@@ -351,7 +424,7 @@ function QuickAddAddress({ onSave }: { onSave: (addr: Address) => void }) {
           placeholder={field.replace('_', ' ')}
           value={form[field as keyof typeof form]}
           onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-          required={field !== 'zip' || field === 'zip'}
+          required
           className="w-full px-2 py-1.5 rounded-lg border text-xs outline-none"
           style={{ borderColor: '#e5e7eb' }}
         />
