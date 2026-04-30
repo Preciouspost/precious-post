@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Protect customer routes
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/letters') || pathname.startsWith('/addresses')) {
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/letters') || pathname.startsWith('/addresses') || pathname.startsWith('/account')) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }

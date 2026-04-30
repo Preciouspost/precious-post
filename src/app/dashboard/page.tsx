@@ -1,11 +1,9 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { PreciousPostLogo } from '@/components/Logo'
+import { AppNav } from '@/components/AppNav'
 import { formatMonthYear, getCurrentMonthYear, getMaxLetters, PLANS } from '@/lib/utils'
 import { Letter, Profile } from '@/types'
-import { LogoutButton } from '@/components/LogoutButton'
-import { ManageBillingButton } from '@/components/ManageBillingButton'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ success?: string }> }) {
   const supabase = await createClient()
@@ -43,17 +41,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-blush)' }}>
-      {/* Top nav */}
-      <nav className="bg-white border-b px-4 py-3" style={{ borderColor: 'var(--color-blush-dark)' }}>
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <PreciousPostLogo size="sm" />
-          <div className="flex items-center gap-3">
-            <Link href="/addresses" className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>Address Book</Link>
-            <ManageBillingButton />
-            <LogoutButton />
-          </div>
-        </div>
-      </nav>
+      <AppNav />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {justSubscribed && (
