@@ -113,6 +113,7 @@ function AddressForm({ initial, onSave, onCancel }: { initial: Address | null; o
     country: initial?.country ?? 'US',
   })
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   function update(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -127,7 +128,9 @@ function AddressForm({ initial, onSave, onCancel }: { initial: Address | null; o
     } else {
       await supabase.from('addresses').insert(form)
     }
-    onSave()
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => { onSave() }, 1200)
   }
 
   return (
@@ -144,18 +147,23 @@ function AddressForm({ initial, onSave, onCancel }: { initial: Address | null; o
         <Field label="ZIP code" value={form.zip} onChange={v => update('zip', v)} required />
         <Field label="Country" value={form.country} onChange={v => update('country', v)} required />
       </div>
-      <div className="flex gap-2 mt-4">
+      <div className="flex items-center gap-3 mt-4">
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || saved}
           className="px-5 py-2 rounded-full text-sm font-semibold text-white disabled:opacity-60"
           style={{ backgroundColor: 'var(--color-mauve)' }}
         >
           {saving ? 'Saving…' : 'Save address'}
         </button>
-        <button type="button" onClick={onCancel} className="px-4 py-2 rounded-full text-sm" style={{ color: 'var(--color-charcoal-light)' }}>
-          Cancel
-        </button>
+        {saved && (
+          <span className="text-sm font-medium" style={{ color: '#22c55e' }}>✓ Saved!</span>
+        )}
+        {!saved && (
+          <button type="button" onClick={onCancel} className="px-4 py-2 rounded-full text-sm" style={{ color: 'var(--color-charcoal-light)' }}>
+            Cancel
+          </button>
+        )}
       </div>
     </form>
   )

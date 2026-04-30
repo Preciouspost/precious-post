@@ -6,7 +6,7 @@ import { useDropzone } from 'react-dropzone'
 import { createClient } from '@/lib/supabase/client'
 import { Address, FontFamily, FontSize, LayoutId, PhotoItem, Profile } from '@/types'
 import { LetterPreview } from './LetterPreview'
-import { LAYOUTS } from './layouts'
+import { getLayoutsForCount, getDefaultLayout } from './layouts'
 import { PreciousPostLogo } from '@/components/Logo'
 import Link from 'next/link'
 import { getCurrentMonthYear } from '@/lib/utils'
@@ -17,7 +17,7 @@ interface Props {
   monthYear: string
 }
 
-const MAX_PHOTOS = 6
+const MAX_PHOTOS = 8
 const MAX_CHARS = 2500
 const PREVIEW_SCALE = 0.48
 
@@ -60,7 +60,12 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
         newPhotos.push({ id: path, url: publicUrl, x: 50, y: 50, width: 100, height: 100 })
       }
     }
-    setPhotos(prev => [...prev, ...newPhotos])
+    setPhotos(prev => {
+      const next = [...prev, ...newPhotos]
+      const def = getDefaultLayout(next.length)
+      if (def) setLayout(def.id)
+      return next
+    })
     setUploadingPhotos(false)
   }, [photos.length])
 
@@ -72,7 +77,12 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
   })
 
   function removePhoto(id: string) {
-    setPhotos(prev => prev.filter(p => p.id !== id))
+    setPhotos(prev => {
+      const next = prev.filter(p => p.id !== id)
+      const def = getDefaultLayout(next.length)
+      if (def) setLayout(def.id)
+      return next
+    })
   }
 
   function adjustPhotoPosition(id: string, axis: 'x' | 'y', value: number) {
@@ -273,27 +283,33 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
             )}
           </Section>
 
-          {/* Layout */}
-          <Section title="Layout">
-            <div className="grid grid-cols-2 gap-2">
-              {LAYOUTS.map(l => (
-                <button
-                  key={l.id}
-                  onClick={() => setLayout(l.id)}
-                  className="px-2 py-2 rounded-xl border text-xs transition-colors text-left"
-                  style={{
-                    borderColor: layout === l.id ? 'var(--color-mauve)' : '#e5e7eb',
-                    backgroundColor: layout === l.id ? 'var(--color-blush)' : 'white',
-                    color: layout === l.id ? 'var(--color-mauve)' : 'var(--color-charcoal)',
-                  }}
-                >
-                  <span className="font-medium">{l.name}</span>
-                  <br />
-                  <span className="opacity-60">{l.description}</span>
-                </button>
-              ))}
-            </div>
-          </Section>
+          {/* Layout — only shows options matching current photo count */}
+          {photos.length > 0 && (
+            <Section title="Layout">
+              {getLayoutsForCount(photos.length).length <= 1 ? (
+                <p className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>
+                  One layout available for {photos.length} photo{photos.length !== 1 ? 's' : ''}.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {getLayoutsForCount(photos.length).map(l => (
+                    <button
+                      key={l.id}
+                      onClick={() => setLayout(l.id)}
+                      className="px-2 py-2 rounded-xl border text-xs transition-colors text-left"
+                      style={{
+                        borderColor: layout === l.id ? 'var(--color-mauve)' : '#e5e7eb',
+                        backgroundColor: layout === l.id ? 'var(--color-blush)' : 'white',
+                        color: layout === l.id ? 'var(--color-mauve)' : 'var(--color-charcoal)',
+                      }}
+                    >
+                      {l.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Section>
+          )}
 
           {/* Font */}
           <Section title="Font style">

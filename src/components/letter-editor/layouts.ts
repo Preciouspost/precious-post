@@ -1,68 +1,191 @@
-import { LayoutId } from '@/types'
+export interface SlotDef {
+  left: number   // % of container width
+  top: number    // % of container height
+  width: number  // % of container width
+  height: number // % of container height
+}
 
 export interface LayoutDef {
-  id: LayoutId
+  id: string
   name: string
-  description: string
-  maxPhotos: number
-  // Grid areas as CSS grid-template-areas, normalized to 12 columns
-  areas: string[][]
+  photoCount: number
+  slots: SlotDef[]
+}
+
+// Build a uniform grid of n columns × m rows with a small gap
+function grid(cols: number, rows: number): SlotDef[] {
+  const G = 1.5 // gap %
+  const w = (100 - G * (cols - 1)) / cols
+  const h = (100 - G * (rows - 1)) / rows
+  const slots: SlotDef[] = []
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      slots.push({
+        left: c * (w + G),
+        top: r * (h + G),
+        width: w,
+        height: h,
+      })
+    }
+  }
+  return slots
 }
 
 export const LAYOUTS: LayoutDef[] = [
+  // ── 1 photo ──────────────────────────────────────────
+  {
+    id: 'single-full',
+    name: 'Full Width',
+    photoCount: 1,
+    slots: [{ left: 0, top: 0, width: 100, height: 100 }],
+  },
+
+  // ── 2 photos ─────────────────────────────────────────
+  {
+    id: 'two-side',
+    name: 'Side by Side',
+    photoCount: 2,
+    slots: grid(2, 1),
+  },
+  {
+    id: 'two-stacked',
+    name: 'Stacked',
+    photoCount: 2,
+    slots: grid(1, 2),
+  },
+
+  // ── 3 photos ─────────────────────────────────────────
   {
     id: 'three-across',
     name: 'Three Across',
-    description: '3 photos in a row',
-    maxPhotos: 3,
-    areas: [['A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'C', 'C', 'C', 'C']],
+    photoCount: 3,
+    slots: grid(3, 1),
   },
   {
     id: 'hero-2-stacked',
-    name: 'Hero + 2 Stacked',
-    description: '1 large photo with 2 stacked beside',
-    maxPhotos: 3,
-    areas: [
-      ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B'],
-      ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'C', 'C', 'C', 'C'],
+    name: 'Hero + 2 Right',
+    photoCount: 3,
+    slots: [
+      { left: 0, top: 0, width: 64.25, height: 100 },
+      { left: 65.75, top: 0, width: 34.25, height: 49.25 },
+      { left: 65.75, top: 50.75, width: 34.25, height: 49.25 },
     ],
   },
   {
     id: 'hero-2-below',
     name: 'Hero + 2 Below',
-    description: '1 large photo above 2 smaller',
-    maxPhotos: 3,
-    areas: [
-      ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'],
-      ['B', 'B', 'B', 'B', 'B', 'B', 'C', 'C', 'C', 'C', 'C', 'C'],
+    photoCount: 3,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 64.25 },
+      { left: 0, top: 65.75, width: 49.25, height: 34.25 },
+      { left: 50.75, top: 65.75, width: 49.25, height: 34.25 },
     ],
   },
+
+  // ── 4 photos ─────────────────────────────────────────
   {
     id: 'grid-2x2',
-    name: '2×2 Grid',
-    description: '4 photos in a square grid',
-    maxPhotos: 4,
-    areas: [
-      ['A', 'A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B', 'B'],
-      ['C', 'C', 'C', 'C', 'C', 'C', 'D', 'D', 'D', 'D', 'D', 'D'],
+    name: '2 × 2 Grid',
+    photoCount: 4,
+    slots: grid(2, 2),
+  },
+  {
+    id: 'four-across',
+    name: 'Four Across',
+    photoCount: 4,
+    slots: grid(4, 1),
+  },
+  {
+    id: 'hero-3-below',
+    name: 'Hero + 3 Below',
+    photoCount: 4,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 64.25 },
+      { left: 0, top: 65.75, width: 32.5, height: 34.25 },
+      { left: 33.75, top: 65.75, width: 32.5, height: 34.25 },
+      { left: 67.5, top: 65.75, width: 32.5, height: 34.25 },
+    ],
+  },
+
+  // ── 5 photos ─────────────────────────────────────────
+  {
+    id: 'hero-4-below',
+    name: 'Hero + 4 Below',
+    photoCount: 5,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 60 },
+      ...grid(4, 1).map(s => ({ ...s, top: 61.5, height: 38.5 })),
     ],
   },
   {
-    id: 'two-side-by-side',
-    name: 'Side by Side',
-    description: '2 photos equal width',
-    maxPhotos: 2,
-    areas: [['A', 'A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'B', 'B']],
+    id: 'two-three',
+    name: '2 + 3 Rows',
+    photoCount: 5,
+    slots: [
+      ...grid(2, 1).map(s => ({ ...s, height: 49.25 })),
+      ...grid(3, 1).map(s => ({ ...s, top: 50.75, height: 49.25 })),
+    ],
+  },
+
+  // ── 6 photos ─────────────────────────────────────────
+  {
+    id: 'grid-3x2',
+    name: '3 × 2 Grid',
+    photoCount: 6,
+    slots: grid(3, 2),
   },
   {
-    id: 'full-single',
-    name: 'Full Width',
-    description: '1 photo spanning full width',
-    maxPhotos: 1,
-    areas: [['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A']],
+    id: 'grid-2x3',
+    name: '2 × 3 Grid',
+    photoCount: 6,
+    slots: grid(2, 3),
+  },
+
+  // ── 7 photos ─────────────────────────────────────────
+  {
+    id: 'three-four',
+    name: '3 + 4 Rows',
+    photoCount: 7,
+    slots: [
+      ...grid(3, 1).map(s => ({ ...s, height: 49.25 })),
+      ...grid(4, 1).map(s => ({ ...s, top: 50.75, height: 49.25 })),
+    ],
+  },
+  {
+    id: 'four-three',
+    name: '4 + 3 Rows',
+    photoCount: 7,
+    slots: [
+      ...grid(4, 1).map(s => ({ ...s, height: 49.25 })),
+      ...grid(3, 1).map(s => ({ ...s, top: 50.75, height: 49.25 })),
+    ],
+  },
+
+  // ── 8 photos ─────────────────────────────────────────
+  {
+    id: 'grid-4x2',
+    name: '4 × 2 Grid',
+    photoCount: 8,
+    slots: grid(4, 2),
+  },
+  {
+    id: 'grid-2x4',
+    name: '2 × 4 Grid',
+    photoCount: 8,
+    slots: grid(2, 4),
   },
 ]
 
-export function getLayout(id: LayoutId): LayoutDef {
-  return LAYOUTS.find(l => l.id === id) ?? LAYOUTS[2]
+export function getLayoutsForCount(count: number): LayoutDef[] {
+  if (count === 0) return []
+  return LAYOUTS.filter(l => l.photoCount === count)
+}
+
+export function getDefaultLayout(count: number): LayoutDef | null {
+  const options = getLayoutsForCount(count)
+  return options[0] ?? null
+}
+
+export function getLayout(id: string): LayoutDef | null {
+  return LAYOUTS.find(l => l.id === id) ?? null
 }
