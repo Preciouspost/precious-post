@@ -41,18 +41,18 @@ function grid(cols: number, rows: number): SlotDef[] {
 export const LAYOUTS: LayoutDef[] = [
   // ── 1 photo ──────────────────────────────────────────
   {
-    id: 'single-full',
-    name: 'Full Width',
-    photoCount: 1,
-    recommendedHeight: 57,  // 736px / 1.33 ≈ 553px → 57% of content height
-    slots: [{ left: 0, top: 0, width: 100, height: 100 }],
-  },
-  {
     id: 'single-centered',
-    name: 'Centered',
+    name: 'Landscape',
     photoCount: 1,
     recommendedHeight: 47,
     slots: [{ left: 12.5, top: 5, width: 75, height: 90 }],
+  },
+  {
+    id: 'single-portrait',
+    name: 'Portrait',
+    photoCount: 1,
+    recommendedHeight: 57,
+    slots: [{ left: 25, top: 0, width: 50, height: 100 }],
   },
 
   // ── 2 photos ─────────────────────────────────────────
@@ -69,16 +69,6 @@ export const LAYOUTS: LayoutDef[] = [
     photoCount: 2,
     recommendedHeight: 65,
     slots: grid(1, 2),
-  },
-  {
-    id: 'two-wide-tall',
-    name: 'Wide + Tall',
-    photoCount: 2,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 60 },
-      { left: 25, top: 61.5, width: 50, height: 38.5 },
-    ],
   },
   {
     id: 'two-asymmetric',
@@ -111,28 +101,6 @@ export const LAYOUTS: LayoutDef[] = [
     ],
   },
   {
-    id: 'hero-2-below',
-    name: 'Hero + 2 Below',
-    photoCount: 3,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 64.25 },
-      { left: 0, top: 65.75, width: 49.25, height: 34.25 },
-      { left: 50.75, top: 65.75, width: 49.25, height: 34.25 },
-    ],
-  },
-  {
-    id: 'three-hero-bottom',
-    name: '2 Top + Hero',
-    photoCount: 3,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 49.25, height: 34.25 },
-      { left: 50.75, top: 0, width: 49.25, height: 34.25 },
-      { left: 0, top: 35.75, width: 100, height: 64.25 },
-    ],
-  },
-  {
     id: 'mosaic-3-balanced',
     name: 'Mosaic',
     photoCount: 3,
@@ -160,30 +128,6 @@ export const LAYOUTS: LayoutDef[] = [
     slots: grid(4, 1),
   },
   {
-    id: 'hero-3-below',
-    name: 'Hero + 3 Below',
-    photoCount: 4,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 64.25 },
-      { left: 0, top: 65.75, width: 32.5, height: 34.25 },
-      { left: 33.75, top: 65.75, width: 32.5, height: 34.25 },
-      { left: 67.5, top: 65.75, width: 32.5, height: 34.25 },
-    ],
-  },
-  {
-    id: 'four-triptych',
-    name: 'Triptych',
-    photoCount: 4,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 55 },
-      { left: 0, top: 56.5, width: 32.33, height: 43.5 },
-      { left: 33.83, top: 56.5, width: 32.33, height: 43.5 },
-      { left: 67.17, top: 56.5, width: 32.83, height: 43.5 },
-    ],
-  },
-  {
     id: 'mosaic-4-featured',
     name: 'Featured',
     photoCount: 4,
@@ -209,16 +153,6 @@ export const LAYOUTS: LayoutDef[] = [
   },
 
   // ── 5 photos ─────────────────────────────────────────
-  {
-    id: 'hero-4-below',
-    name: 'Hero + 4 Below',
-    photoCount: 5,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 60 },
-      ...grid(4, 1).map(s => ({ ...s, top: 61.5, height: 38.5 })),
-    ],
-  },
   {
     id: 'two-three',
     name: '2 + 3 Rows',
@@ -272,16 +206,6 @@ export const LAYOUTS: LayoutDef[] = [
     slots: grid(2, 3),
   },
   {
-    id: 'six-hero-stripe',
-    name: 'Hero + Stripe',
-    photoCount: 6,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 50 },
-      ...grid(5, 1).map(s => ({ ...s, top: 51.5, height: 48.5 })),
-    ],
-  },
-  {
     id: 'six-two-rows-asymmetric',
     name: 'Asymmetric Rows',
     photoCount: 6,
@@ -329,16 +253,6 @@ export const LAYOUTS: LayoutDef[] = [
     ],
   },
   {
-    id: 'seven-hero-six',
-    name: 'Hero + 6',
-    photoCount: 7,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 45 },
-      ...grid(6, 1).map(s => ({ ...s, top: 46.5, height: 53.5 })),
-    ],
-  },
-  {
     id: 'seven-mosaic',
     name: 'Mosaic',
     photoCount: 7,
@@ -365,16 +279,6 @@ export const LAYOUTS: LayoutDef[] = [
     photoCount: 8,
     recommendedHeight: 65,
     slots: grid(2, 4),
-  },
-  {
-    id: 'eight-hero-seven',
-    name: 'Hero + 7',
-    photoCount: 8,
-    recommendedHeight: 55,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 50 },
-      ...grid(7, 1).map(s => ({ ...s, top: 51.5, height: 48.5 })),
-    ],
   },
   {
     id: 'eight-mosaic',
@@ -449,18 +353,6 @@ export const LAYOUTS: LayoutDef[] = [
     textPosition: 'left',
     photoWidth: 50,
     slots: grid(1, 3),
-  },
-  {
-    id: 'hero-text-right',
-    name: 'Hero | Text',
-    photoCount: 3,
-    textPosition: 'right',
-    photoWidth: 52,
-    slots: [
-      { left: 0, top: 0, width: 100, height: 64.25 },
-      { left: 0, top: 65.75, width: 49.25, height: 34.25 },
-      { left: 50.75, top: 65.75, width: 49.25, height: 34.25 },
-    ],
   },
 
   // ── Side-by-side: 4 photos ────────────────────────────
