@@ -225,9 +225,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
 
       {/* Footer logo — always locked at bottom */}
       <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid #F9EDE8', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <div style={{ transform: 'scale(0.9)', transformOrigin: 'center' }}>
-          <PreciousPostLogo size="sm" />
-        </div>
+        <PreciousPostLogo size="md" />
       </div>
     </div>
   )
