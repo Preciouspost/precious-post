@@ -11,12 +11,14 @@ export interface LayoutDef {
   photoCount: number
   slots: SlotDef[]
   // Auto-applied photo area height (%) when this layout is selected.
-  // Calculated so slots land near 4:3 or square proportions on an 8.5×11 page.
   recommendedHeight?: number
-  // When set, photos and text are rendered side-by-side instead of stacked
+  // Side-by-side: fixed photo column beside text column (no wrapping)
   textPosition?: 'right' | 'left'
-  // Photo column width as % of content area (only used when textPosition is set)
   photoWidth?: number
+  // Float: photo block floats inside the text flow so text wraps around it
+  float?: 'left' | 'right'
+  // Width of the float block as % of content area
+  floatWidth?: number
 }
 
 // Build a uniform grid of n columns × m rows with a small gap
@@ -290,6 +292,192 @@ export const LAYOUTS: LayoutDef[] = [
       { left: 58.5, top: 0, width: 41.5, height: 26.75 },
       { left: 58.5, top: 28.25, width: 41.5, height: 26.75 },
       ...grid(5, 1).map(s => ({ ...s, top: 56.5, height: 43.5 })),
+    ],
+  },
+
+  // ── Float wrap: 1 photo ───────────────────────────────
+  {
+    id: 'single-wrap-left',
+    name: 'Wrap Left',
+    photoCount: 1,
+    float: 'left',
+    floatWidth: 42,
+    recommendedHeight: 42,
+    slots: [{ left: 0, top: 0, width: 100, height: 100 }],
+  },
+  {
+    id: 'single-wrap-right',
+    name: 'Wrap Right',
+    photoCount: 1,
+    float: 'right',
+    floatWidth: 42,
+    recommendedHeight: 42,
+    slots: [{ left: 0, top: 0, width: 100, height: 100 }],
+  },
+
+  // ── Float wrap: 2 photos ──────────────────────────────
+  {
+    id: 'two-wrap-left',
+    name: 'Wrap Left',
+    photoCount: 2,
+    float: 'left',
+    floatWidth: 42,
+    recommendedHeight: 50,
+    slots: grid(1, 2),
+  },
+  {
+    id: 'two-wrap-right',
+    name: 'Wrap Right',
+    photoCount: 2,
+    float: 'right',
+    floatWidth: 42,
+    recommendedHeight: 50,
+    slots: grid(1, 2),
+  },
+  {
+    id: 'two-side-wrap-left',
+    name: '2 Side Wrap Left',
+    photoCount: 2,
+    float: 'left',
+    floatWidth: 52,
+    recommendedHeight: 28,
+    slots: grid(2, 1),
+  },
+
+  // ── Float wrap: 3 photos ──────────────────────────────
+  {
+    id: 'three-wrap-left',
+    name: 'Wrap Left',
+    photoCount: 3,
+    float: 'left',
+    floatWidth: 48,
+    recommendedHeight: 55,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 100 },
+      { left: 58.5, top: 0, width: 41.5, height: 49.25 },
+      { left: 58.5, top: 50.75, width: 41.5, height: 49.25 },
+    ],
+  },
+  {
+    id: 'three-wrap-right',
+    name: 'Wrap Right',
+    photoCount: 3,
+    float: 'right',
+    floatWidth: 48,
+    recommendedHeight: 55,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 100 },
+      { left: 58.5, top: 0, width: 41.5, height: 49.25 },
+      { left: 58.5, top: 50.75, width: 41.5, height: 49.25 },
+    ],
+  },
+  {
+    id: 'three-stack-wrap-left',
+    name: '3 Stack Wrap Left',
+    photoCount: 3,
+    float: 'left',
+    floatWidth: 40,
+    recommendedHeight: 55,
+    slots: grid(1, 3),
+  },
+
+  // ── Float wrap: 4 photos ──────────────────────────────
+  {
+    id: 'four-wrap-left',
+    name: 'Wrap Left',
+    photoCount: 4,
+    float: 'left',
+    floatWidth: 48,
+    recommendedHeight: 55,
+    slots: grid(2, 2),
+  },
+  {
+    id: 'four-wrap-right',
+    name: 'Wrap Right',
+    photoCount: 4,
+    float: 'right',
+    floatWidth: 48,
+    recommendedHeight: 55,
+    slots: grid(2, 2),
+  },
+  {
+    id: 'four-mosaic-wrap-left',
+    name: 'Mosaic Wrap Left',
+    photoCount: 4,
+    float: 'left',
+    floatWidth: 50,
+    recommendedHeight: 58,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 100 },
+      { left: 58.5, top: 0, width: 41.5, height: 32 },
+      { left: 58.5, top: 33.5, width: 41.5, height: 32 },
+      { left: 58.5, top: 67, width: 41.5, height: 33 },
+    ],
+  },
+
+  // ── Float wrap: 5 photos ──────────────────────────────
+  {
+    id: 'five-wrap-left',
+    name: 'Wrap Left',
+    photoCount: 5,
+    float: 'left',
+    floatWidth: 50,
+    recommendedHeight: 58,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 65 },
+      { left: 58.5, top: 0, width: 41.5, height: 31.75 },
+      { left: 58.5, top: 33.25, width: 41.5, height: 31.75 },
+      { left: 0, top: 66.5, width: 49.25, height: 33.5 },
+      { left: 50.75, top: 66.5, width: 49.25, height: 33.5 },
+    ],
+  },
+  {
+    id: 'five-wrap-right',
+    name: 'Wrap Right',
+    photoCount: 5,
+    float: 'right',
+    floatWidth: 50,
+    recommendedHeight: 58,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 65 },
+      { left: 58.5, top: 0, width: 41.5, height: 31.75 },
+      { left: 58.5, top: 33.25, width: 41.5, height: 31.75 },
+      { left: 0, top: 66.5, width: 49.25, height: 33.5 },
+      { left: 50.75, top: 66.5, width: 49.25, height: 33.5 },
+    ],
+  },
+
+  // ── Float wrap: 6 photos ──────────────────────────────
+  {
+    id: 'six-wrap-left',
+    name: 'Wrap Left',
+    photoCount: 6,
+    float: 'left',
+    floatWidth: 50,
+    recommendedHeight: 58,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 55 },
+      { left: 58.5, top: 0, width: 41.5, height: 26.75 },
+      { left: 58.5, top: 28.25, width: 41.5, height: 26.75 },
+      { left: 0, top: 56.5, width: 32.33, height: 43.5 },
+      { left: 33.83, top: 56.5, width: 32.33, height: 43.5 },
+      { left: 67.17, top: 56.5, width: 32.83, height: 43.5 },
+    ],
+  },
+  {
+    id: 'six-wrap-right',
+    name: 'Wrap Right',
+    photoCount: 6,
+    float: 'right',
+    floatWidth: 50,
+    recommendedHeight: 58,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 55 },
+      { left: 58.5, top: 0, width: 41.5, height: 26.75 },
+      { left: 58.5, top: 28.25, width: 41.5, height: 26.75 },
+      { left: 0, top: 56.5, width: 32.33, height: 43.5 },
+      { left: 33.83, top: 56.5, width: 32.33, height: 43.5 },
+      { left: 67.17, top: 56.5, width: 32.83, height: 43.5 },
     ],
   },
 

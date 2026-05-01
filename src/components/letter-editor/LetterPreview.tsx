@@ -33,7 +33,9 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
   const photoAreaPx = (photoAreaHeight / 100) * (PAGE_H - PADDING * 2)
 
   const isHorizontal = layoutDef?.textPosition === 'right' || layoutDef?.textPosition === 'left'
+  const isFloat = !!layoutDef?.float
   const photoWidthPct = layoutDef?.photoWidth ?? 50
+  const floatWidthPct = layoutDef?.floatWidth ?? 42
 
   const fontFamily =
     font === 'handwritten' ? "'Caveat', cursive"
@@ -45,30 +47,16 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
 
   const today = format(new Date(), 'MMMM d, yyyy')
 
-  const letterBody = (
-    <div
-      style={{
-        flex: 1,
-        overflow: 'hidden',
-        color: '#4A4A4A',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-        fontSize: fontSizePx,
-        lineHeight,
-        fontFamily,
-      }}
-    >
-      {letterText || <span style={{ color: '#ccc' }}>Your letter will appear here…</span>}
-    </div>
-  )
+  const textStyle: React.CSSProperties = {
+    color: '#4A4A4A',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    fontSize: fontSizePx,
+    lineHeight,
+    fontFamily,
+  }
 
-  const signatureLine = senderName ? (
-    <p style={{ fontSize: 14, color: '#4A4A4A', marginTop: 12, flexShrink: 0, fontFamily }}>
-      With love,<br />{senderName}
-    </p>
-  ) : null
-
-  // Drag handle for resizing the photo area (stacked layouts only)
+  // Drag handle for resizing the photo block height
   function handleResizeDragStart(e: React.MouseEvent) {
     if (!onResizePhotoArea) return
     e.preventDefault()
@@ -90,6 +78,26 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
   }
+
+  const resizeHandle = onResizePhotoArea ? (
+    <div
+      onMouseDown={handleResizeDragStart}
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 12,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'ns-resize',
+        userSelect: 'none',
+      }}
+    >
+      <div style={{ width: 28, height: 3, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.15)' }} />
+    </div>
+  ) : null
 
   return (
     <div
@@ -115,63 +123,103 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
         {today}
       </p>
 
-      {isHorizontal ? (
-        /* ── Side-by-side: photo column + text column ── */
+      {isFloat && photos.length > 0 && layoutDef ? (
+        /* ── Float: photo block floats, text wraps around it ── */
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div
+            style={{
+              float: layoutDef.float,
+              width: `${floatWidthPct}%`,
+              height: photoAreaPx,
+              marginRight: layoutDef.float === 'left' ? 16 : 0,
+              marginLeft: layoutDef.float === 'right' ? 16 : 0,
+              marginBottom: 10,
+              position: 'relative',
+              flexShrink: 0,
+            }}
+          >
+            <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />
+            {resizeHandle}
+          </div>
+
+          {/* Text flows naturally around the floated block */}
+          <div style={textStyle}>
+            {letterText || <span style={{ color: '#ccc' }}>Your letter will appear here…</span>}
+          </div>
+
+          {senderName && (
+            <p style={{ clear: 'both', fontSize: 14, color: '#4A4A4A', marginTop: 12, fontFamily }}>
+              With love,<br />{senderName}
+            </p>
+          )}
+          {!senderName && <div style={{ clear: 'both' }} />}
+        </div>
+
+      ) : isFloat && photos.length === 0 ? (
+        /* Float mode with no photos yet — just show text */
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div style={textStyle}>
+            {letterText || <span style={{ color: '#ccc' }}>Your letter will appear here…</span>}
+          </div>
+          {senderName && (
+            <p style={{ fontSize: 14, color: '#4A4A4A', marginTop: 12, fontFamily }}>
+              With love,<br />{senderName}
+            </p>
+          )}
+        </div>
+
+      ) : isHorizontal ? (
+        /* ── Side-by-side: fixed photo column beside text column ── */
         <div style={{ flex: 1, display: 'flex', gap: 16, minHeight: 0, overflow: 'hidden' }}>
           {layoutDef?.textPosition === 'left' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-              {letterBody}
-              {signatureLine}
+              <div style={{ ...textStyle, flex: 1 }}>
+                {letterText || <span style={{ color: '#ccc' }}>Your letter will appear here…</span>}
+              </div>
+              {senderName && (
+                <p style={{ fontSize: 14, color: '#4A4A4A', marginTop: 12, flexShrink: 0, fontFamily }}>
+                  With love,<br />{senderName}
+                </p>
+              )}
             </div>
           )}
           <div style={{ width: `${photoWidthPct}%`, flexShrink: 0, position: 'relative' }}>
-            {layoutDef && (
-              <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />
-            )}
+            {layoutDef && <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />}
           </div>
           {layoutDef?.textPosition === 'right' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-              {letterBody}
-              {signatureLine}
+              <div style={{ ...textStyle, flex: 1 }}>
+                {letterText || <span style={{ color: '#ccc' }}>Your letter will appear here…</span>}
+              </div>
+              {senderName && (
+                <p style={{ fontSize: 14, color: '#4A4A4A', marginTop: 12, flexShrink: 0, fontFamily }}>
+                  With love,<br />{senderName}
+                </p>
+              )}
             </div>
           )}
         </div>
+
       ) : (
         /* ── Vertical stack: photos on top, text below ── */
         <>
           {photos.length > 0 && layoutDef && (
             <div style={{ width: '100%', height: photoAreaPx, flexShrink: 0, position: 'relative' }}>
               <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />
+              {resizeHandle}
             </div>
           )}
+          {photos.length > 0 && <div style={{ height: 12, flexShrink: 0 }} />}
 
-          {/* Drag-to-resize handle */}
-          {photos.length > 0 && onResizePhotoArea && (
-            <div
-              onMouseDown={handleResizeDragStart}
-              style={{
-                height: 12,
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'ns-resize',
-                userSelect: 'none',
-              }}
-            >
-              <div style={{
-                width: 36,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: '#e5d8d8',
-              }} />
-            </div>
+          <div style={{ ...textStyle, flex: 1, overflow: 'hidden' }}>
+            {letterText || <span style={{ color: '#ccc' }}>Your letter will appear here…</span>}
+          </div>
+
+          {senderName && (
+            <p style={{ fontSize: 14, color: '#4A4A4A', marginTop: 12, flexShrink: 0, fontFamily }}>
+              With love,<br />{senderName}
+            </p>
           )}
-
-          {photos.length === 0 && <div style={{ height: 8, flexShrink: 0 }} />}
-
-          {letterBody}
-          {signatureLine}
         </>
       )}
 
@@ -213,7 +261,6 @@ function PhotoGrid({
     function onMouseMove(ev: MouseEvent) {
       const dx = ev.clientX - startMouseX
       const dy = ev.clientY - startMouseY
-      // Drag left/up = see more right/bottom, drag right/down = see more left/top
       const newX = Math.max(0, Math.min(100, startX - (dx / rect.width) * 100))
       const newY = Math.max(0, Math.min(100, startY - (dy / rect.height) * 100))
       pan(i, newX, newY)
