@@ -10,56 +10,49 @@ export default function OurStoryPage() {
       {/* Hero */}
       <section className="py-20 px-6 text-center" style={{ backgroundColor: 'var(--color-blush)' }}>
         <p className="text-sm font-medium tracking-widest uppercase mb-4" style={{ color: 'var(--color-mauve)' }}>Our Story</p>
-        <h1 className="text-4xl md:text-5xl font-bold max-w-2xl mx-auto" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
-          Born from a desire to stay close
+        <h1 className="text-4xl md:text-5xl font-bold max-w-2xl mx-auto leading-tight" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
+          My Mimi is the inspiration behind Precious Post.
         </h1>
       </section>
 
       {/* Story */}
       <section className="py-16 px-6">
-        <div className="max-w-2xl mx-auto space-y-8 text-base leading-relaxed" style={{ color: 'var(--color-charcoal)' }}>
+        <div className="max-w-2xl mx-auto space-y-7 text-base leading-relaxed" style={{ color: 'var(--color-charcoal)' }}>
           <p>
-            Precious Post started with a simple feeling — the ache of distance. Whether it's a grandparent in another state, a best friend across the country, or a parent who doesn't text much, there are people in our lives we love deeply but don't connect with the way we want to.
-          </p>
-          <p>
-            Social media feels too casual. A text disappears in seconds. But a letter? A letter gets kept. It gets re-read. It gets pinned to a refrigerator or tucked into a drawer where it lives for years.
-          </p>
-          <p style={{ fontFamily: 'var(--font-playfair)', fontSize: '1.25rem', color: 'var(--color-mauve)' }}>
-            "I wanted to make sending a real, beautiful letter as easy as posting a photo."
+            Cards are Mimi's Super Bowl. Not a single holiday passes that she doesn't mail me a letter. No birthday is shared without happy tears spilled onto a birthday card.
           </p>
           <p>
-            Precious Post is a one-woman operation, run by Lauren. Every letter that comes through is personally printed and mailed by hand. That's not a limitation — it's the point. Every letter gets real attention, real care, and real postage.
+            I started thinking — when did we decide a text was enough for the people who deserve so much more? We spend so much time curating posts for strangers — why do the people who love us most get the least of us? I looked at my phone and realized my updates had turned into quick text threads. Emojis. Random photos. Things that get lost and disappear.
           </p>
-          <p>
-            You design it in minutes. We handle the rest. Your person gets something beautiful in their mailbox.
-          </p>
-        </div>
-      </section>
 
-      {/* Values */}
-      <section className="py-16 px-6" style={{ backgroundColor: 'var(--color-blush)' }}>
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-10" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
-            What we believe
-          </h2>
-          <div className="grid sm:grid-cols-3 gap-8">
-            {[
-              { icon: '💌', title: 'Letters matter', desc: 'Physical mail creates a connection that digital messages simply can\'t replicate.' },
-              { icon: '🌸', title: 'Simplicity is a gift', desc: 'Making it easy to send love means more people actually do it.' },
-              { icon: '🤍', title: 'Personal over perfect', desc: 'Your words and your photos are what make a letter precious — not perfection.' },
-            ].map(v => (
-              <div key={v.title} className="text-center">
-                <div className="text-3xl mb-3">{v.icon}</div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--color-charcoal)' }}>{v.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--color-charcoal-light)' }}>{v.desc}</p>
-              </div>
-            ))}
+          <p className="text-xl font-medium" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-mauve)' }}>
+            That's why I created Precious Post.
+          </p>
+
+          <p>
+            Not to reinvent anything. Just to remind you. Once a month, we prompt you to pause, share what's new, upload your favorite photos, and we send something real to the people who matter most. Because we know you are busy, we handle the printing and the mailing. The convenience of a social post, delivered as postage.
+          </p>
+          <p>
+            We live in such a fast paced digital age — the act of sending something real and personal means more than ever.
+          </p>
+
+          <div className="py-2 pl-5" style={{ borderLeft: '3px solid var(--color-blush-dark)' }}>
+            <p className="leading-relaxed" style={{ color: 'var(--color-charcoal-light)' }}>
+              The gardenia — Mimi's favorite flower — is our logo. Every letter she sends me begins with <em>"Precious Lauren."</em> This whole thing started with her. I wanted every letter that goes out to carry a little piece of that.
+            </p>
           </div>
+
+          <p className="text-lg font-medium" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
+            You know they deserve more than a text.
+          </p>
+          <p className="text-lg font-medium" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
+            Welcome to Precious Post.
+          </p>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-16 px-6 text-center bg-white">
+      <section className="py-16 px-6 text-center" style={{ backgroundColor: 'var(--color-blush)' }}>
         <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
           Ready to send your first letter?
         </h2>
