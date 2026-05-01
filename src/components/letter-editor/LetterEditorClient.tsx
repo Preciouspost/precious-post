@@ -424,7 +424,10 @@ function QuickAddAddress({ onSave }: { onSave: (addr: Address) => void }) {
     e.preventDefault()
     setSaving(true)
     const supabase = createClient()
-    const { data } = await supabase.from('addresses').insert(form).select().single()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSaving(false); return }
+    const { data, error } = await supabase.from('addresses').insert({ ...form, user_id: user.id }).select().single()
+    if (error) { alert('Could not save: ' + error.message); setSaving(false); return }
     if (data) onSave(data as Address)
     setSaving(false)
   }

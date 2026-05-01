@@ -123,12 +123,18 @@ function AddressForm({ initial, onSave, onCancel }: { initial: Address | null; o
     e.preventDefault()
     setSaving(true)
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSaving(false); return }
+
+    let error
     if (initial) {
-      await supabase.from('addresses').update(form).eq('id', initial.id)
+      ;({ error } = await supabase.from('addresses').update(form).eq('id', initial.id))
     } else {
-      await supabase.from('addresses').insert(form)
+      ;({ error } = await supabase.from('addresses').insert({ ...form, user_id: user.id }))
     }
+
     setSaving(false)
+    if (error) { alert('Could not save address: ' + error.message); return }
     setSaved(true)
     setTimeout(() => { onSave() }, 1200)
   }
