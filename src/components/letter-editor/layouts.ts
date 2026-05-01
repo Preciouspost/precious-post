@@ -10,6 +10,10 @@ export interface LayoutDef {
   name: string
   photoCount: number
   slots: SlotDef[]
+  // When set, photos and text are rendered side-by-side instead of stacked
+  textPosition?: 'right' | 'left'
+  // Photo column width as % of content area (only used when textPosition is set)
+  photoWidth?: number
 }
 
 // Build a uniform grid of n columns × m rows with a small gap
@@ -173,6 +177,106 @@ export const LAYOUTS: LayoutDef[] = [
     name: '2 × 4 Grid',
     photoCount: 8,
     slots: grid(2, 4),
+  },
+
+  // ── Side-by-side: 1 photo ─────────────────────────────
+  {
+    id: 'photo-left-text-right',
+    name: 'Photo | Text',
+    photoCount: 1,
+    textPosition: 'right',
+    photoWidth: 52,
+    slots: [{ left: 0, top: 0, width: 100, height: 100 }],
+  },
+  {
+    id: 'photo-right-text-left',
+    name: 'Text | Photo',
+    photoCount: 1,
+    textPosition: 'left',
+    photoWidth: 52,
+    slots: [{ left: 0, top: 0, width: 100, height: 100 }],
+  },
+
+  // ── Side-by-side: 2 photos ────────────────────────────
+  {
+    id: 'two-stack-left-text-right',
+    name: '2 Photos | Text',
+    photoCount: 2,
+    textPosition: 'right',
+    photoWidth: 48,
+    slots: grid(1, 2),
+  },
+  {
+    id: 'text-left-two-stack-right',
+    name: 'Text | 2 Photos',
+    photoCount: 2,
+    textPosition: 'left',
+    photoWidth: 48,
+    slots: grid(1, 2),
+  },
+  {
+    id: 'two-side-text-below-left',
+    name: '2 Side | Text',
+    photoCount: 2,
+    textPosition: 'right',
+    photoWidth: 55,
+    slots: grid(2, 1),
+  },
+
+  // ── Side-by-side: 3 photos ────────────────────────────
+  {
+    id: 'three-col-left-text-right',
+    name: '3 Photos | Text',
+    photoCount: 3,
+    textPosition: 'right',
+    photoWidth: 50,
+    slots: grid(1, 3),
+  },
+  {
+    id: 'text-left-three-col-right',
+    name: 'Text | 3 Photos',
+    photoCount: 3,
+    textPosition: 'left',
+    photoWidth: 50,
+    slots: grid(1, 3),
+  },
+  {
+    id: 'hero-text-right',
+    name: 'Hero | Text',
+    photoCount: 3,
+    textPosition: 'right',
+    photoWidth: 52,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 64.25 },
+      { left: 0, top: 65.75, width: 49.25, height: 34.25 },
+      { left: 50.75, top: 65.75, width: 49.25, height: 34.25 },
+    ],
+  },
+
+  // ── Side-by-side: 4 photos ────────────────────────────
+  {
+    id: 'grid-2x2-left-text-right',
+    name: '2×2 | Text',
+    photoCount: 4,
+    textPosition: 'right',
+    photoWidth: 52,
+    slots: grid(2, 2),
+  },
+  {
+    id: 'text-left-grid-2x2-right',
+    name: 'Text | 2×2',
+    photoCount: 4,
+    textPosition: 'left',
+    photoWidth: 52,
+    slots: grid(2, 2),
+  },
+  {
+    id: 'four-col-left-text-right',
+    name: '4 Tall | Text',
+    photoCount: 4,
+    textPosition: 'right',
+    photoWidth: 55,
+    slots: grid(2, 2),
   },
 ]
 

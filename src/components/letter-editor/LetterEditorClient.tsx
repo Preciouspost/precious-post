@@ -6,7 +6,7 @@ import { useDropzone } from 'react-dropzone'
 import { createClient } from '@/lib/supabase/client'
 import { Address, FontFamily, FontSize, LayoutId, PhotoItem, Profile } from '@/types'
 import { LetterPreview } from './LetterPreview'
-import { getLayoutsForCount, getDefaultLayout } from './layouts'
+import { getLayoutsForCount, getDefaultLayout, getLayout } from './layouts'
 import { PreciousPostLogo } from '@/components/Logo'
 import Link from 'next/link'
 import { getCurrentMonthYear } from '@/lib/utils'
@@ -39,6 +39,8 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
   const dragIndexRef = useRef<number | null>(null)
 
   const selectedAddress = addresses.find(a => a.id === addressId)
+  const currentLayoutDef = getLayout(layout)
+  const isSideBySide = currentLayoutDef?.textPosition === 'right' || currentLayoutDef?.textPosition === 'left'
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const remaining = MAX_PHOTOS - photos.length
@@ -87,6 +89,14 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
 
   function adjustPhotoPosition(id: string, axis: 'x' | 'y', value: number) {
     setPhotos(prev => prev.map(p => p.id === id ? { ...p, [axis]: value } : p))
+  }
+
+  function swapPhotos(i: number, j: number) {
+    setPhotos(prev => {
+      const next = [...prev]
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
   }
 
   // Drag-to-reorder handlers
@@ -217,14 +227,16 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
             )}
           </Section>
 
-          {/* Photo area height — ABOVE photos */}
-          <Section title={`Photo area height: ${photoAreaHeight}%`}>
-            <input
-              type="range" min={20} max={70} value={photoAreaHeight}
-              onChange={e => setPhotoAreaHeight(+e.target.value)}
-              className="w-full"
-            />
-          </Section>
+          {/* Photo area height — only for vertical stacked layouts */}
+          {!isSideBySide && (
+            <Section title={`Photo area height: ${photoAreaHeight}%`}>
+              <input
+                type="range" min={20} max={70} value={photoAreaHeight}
+                onChange={e => setPhotoAreaHeight(+e.target.value)}
+                className="w-full"
+              />
+            </Section>
+          )}
 
           {/* Photos */}
           <Section title={`Photos (${photos.length}/${MAX_PHOTOS})`}>
@@ -402,6 +414,7 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
               senderName={profile.name}
               address={selectedAddress}
               scale={PREVIEW_SCALE}
+              onSwapPhotos={swapPhotos}
             />
           </div>
         </div>

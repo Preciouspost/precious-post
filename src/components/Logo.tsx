@@ -1,18 +1,35 @@
-'use client'
+import Image from 'next/image'
 
-export function PreciousPostLogo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
-  const textSize = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-2xl' : 'text-lg'
-  const flowerSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-4xl' : 'text-2xl'
+type Variant = 'default' | 'white' | 'blush'
 
+const VARIANTS: Record<Variant, string> = {
+  default: '/logo.svg',
+  white: '/logo-white.svg',
+  blush: '/logo-blush.svg',
+}
+
+const SIZES = {
+  sm: 80,
+  md: 110,
+  lg: 160,
+}
+
+export function PreciousPostLogo({
+  size = 'md',
+  variant = 'default',
+}: {
+  size?: 'sm' | 'md' | 'lg'
+  variant?: Variant
+}) {
+  const px = SIZES[size]
   return (
-    <div className="flex items-center gap-2 select-none">
-      <span className={flowerSize}>🌸</span>
-      <span
-        className={`font-bold tracking-widest uppercase ${textSize}`}
-        style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-mauve)' }}
-      >
-        Precious Post
-      </span>
-    </div>
+    <Image
+      src={VARIANTS[variant]}
+      alt="Precious Post"
+      width={px}
+      height={px}
+      style={{ objectFit: 'contain' }}
+      priority
+    />
   )
 }
