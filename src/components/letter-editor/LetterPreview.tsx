@@ -17,7 +17,8 @@ interface Props {
   senderName?: string
   address?: Address | null
   scale?: number
-  onSwapPhotos?: (i: number, j: number) => void
+  onPanPhoto?: (index: number, x: number, y: number) => void
+  onResizePhotoArea?: (heightPct: number) => void
 }
 
 const PAGE_W = 816
@@ -25,7 +26,7 @@ const PAGE_H = 1056
 const PADDING = 40
 
 export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPreview(
-  { layout, photos, photoAreaHeight, font, fontSize, letterText, senderName, scale = 1, onSwapPhotos },
+  { layout, photos, photoAreaHeight, font, fontSize, letterText, senderName, scale = 1, onPanPhoto, onResizePhotoArea },
   ref
 ) {
   const layoutDef = getLayout(layout)
@@ -67,6 +68,29 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
     </p>
   ) : null
 
+  // Drag handle for resizing the photo area (stacked layouts only)
+  function handleResizeDragStart(e: React.MouseEvent) {
+    if (!onResizePhotoArea) return
+    e.preventDefault()
+    const resize = onResizePhotoArea
+    const startY = e.clientY
+    const startPct = photoAreaHeight
+    const contentHeightPx = PAGE_H - PADDING * 2
+
+    function onMouseMove(ev: MouseEvent) {
+      const dy = ev.clientY - startY
+      const dyPreview = dy / scale
+      const newPct = Math.max(15, Math.min(75, startPct + (dyPreview / contentHeightPx) * 100))
+      resize(newPct)
+    }
+    function onMouseUp() {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
   return (
     <div
       ref={ref}
@@ -92,24 +116,19 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
       </p>
 
       {isHorizontal ? (
-        /* ── Side-by-side: photo col + text col ── */
+        /* ── Side-by-side: photo column + text column ── */
         <div style={{ flex: 1, display: 'flex', gap: 16, minHeight: 0, overflow: 'hidden' }}>
-          {/* Text column (left) */}
           {layoutDef?.textPosition === 'left' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
               {letterBody}
               {signatureLine}
             </div>
           )}
-
-          {/* Photo column */}
           <div style={{ width: `${photoWidthPct}%`, flexShrink: 0, position: 'relative' }}>
             {layoutDef && (
-              <PhotoGrid slots={layoutDef.slots} photos={photos} onSwap={onSwapPhotos} />
+              <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />
             )}
           </div>
-
-          {/* Text column (right) */}
           {layoutDef?.textPosition === 'right' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
               {letterBody}
@@ -121,10 +140,36 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
         /* ── Vertical stack: photos on top, text below ── */
         <>
           {photos.length > 0 && layoutDef && (
-            <div style={{ width: '100%', height: photoAreaPx, flexShrink: 0, marginBottom: 16, position: 'relative' }}>
-              <PhotoGrid slots={layoutDef.slots} photos={photos} onSwap={onSwapPhotos} />
+            <div style={{ width: '100%', height: photoAreaPx, flexShrink: 0, position: 'relative' }}>
+              <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />
             </div>
           )}
+
+          {/* Drag-to-resize handle */}
+          {photos.length > 0 && onResizePhotoArea && (
+            <div
+              onMouseDown={handleResizeDragStart}
+              style={{
+                height: 12,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'ns-resize',
+                userSelect: 'none',
+              }}
+            >
+              <div style={{
+                width: 36,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: '#e5d8d8',
+              }} />
+            </div>
+          )}
+
+          {photos.length === 0 && <div style={{ height: 8, flexShrink: 0 }} />}
+
           {letterBody}
           {signatureLine}
         </>
@@ -143,36 +188,56 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
 function PhotoGrid({
   slots,
   photos,
-  onSwap,
+  onPan,
 }: {
   slots: SlotDef[]
   photos: PhotoItem[]
-  onSwap?: (i: number, j: number) => void
+  onPan?: (index: number, x: number, y: number) => void
 }) {
-  const dragSourceRef = useRef<number | null>(null)
-  const dragOverRef = useRef<number | null>(null)
-  const [dragOverSlot, setDragOverSlot] = useState<number | null>(null)
+  const [activeSlot, setActiveSlot] = useState<number | null>(null)
+
+  function handleMouseDown(e: React.MouseEvent, i: number) {
+    if (!onPan || !photos[i]) return
+    e.preventDefault()
+
+    const pan = onPan
+    const startMouseX = e.clientX
+    const startMouseY = e.clientY
+    const startX = photos[i].x
+    const startY = photos[i].y
+    const slotEl = e.currentTarget as HTMLElement
+    const rect = slotEl.getBoundingClientRect()
+
+    setActiveSlot(i)
+
+    function onMouseMove(ev: MouseEvent) {
+      const dx = ev.clientX - startMouseX
+      const dy = ev.clientY - startMouseY
+      // Drag left/up = see more right/bottom, drag right/down = see more left/top
+      const newX = Math.max(0, Math.min(100, startX - (dx / rect.width) * 100))
+      const newY = Math.max(0, Math.min(100, startY - (dy / rect.height) * 100))
+      pan(i, newX, newY)
+    }
+
+    function onMouseUp() {
+      setActiveSlot(null)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {slots.map((slot, i) => {
         const photo = photos[i]
-        const isOver = dragOverSlot === i
+        const isActive = activeSlot === i
         return (
           <div
             key={i}
-            draggable={!!onSwap && !!photo}
-            onDragStart={onSwap ? () => { dragSourceRef.current = i } : undefined}
-            onDragEnter={onSwap ? () => { dragOverRef.current = i; setDragOverSlot(i) } : undefined}
-            onDragOver={onSwap ? (e) => e.preventDefault() : undefined}
-            onDragEnd={onSwap ? () => {
-              const from = dragSourceRef.current
-              const to = dragOverRef.current
-              if (from !== null && to !== null && from !== to) onSwap(from, to)
-              dragSourceRef.current = null
-              dragOverRef.current = null
-              setDragOverSlot(null)
-            } : undefined}
+            onMouseDown={e => handleMouseDown(e, i)}
             style={{
               position: 'absolute',
               left: `${slot.left}%`,
@@ -182,16 +247,16 @@ function PhotoGrid({
               backgroundColor: '#F9EDE8',
               borderRadius: 6,
               overflow: 'hidden',
-              cursor: onSwap && photo ? 'grab' : 'default',
-              outline: isOver ? '3px solid #b08090' : 'none',
+              cursor: onPan && photo ? (isActive ? 'grabbing' : 'grab') : 'default',
+              outline: isActive ? '3px solid #b08090' : 'none',
               outlineOffset: '-3px',
-              transition: 'outline 0.1s',
             }}
           >
             {photo ? (
               <img
                 src={photo.url}
                 alt=""
+                draggable={false}
                 style={{
                   width: '100%',
                   height: '100%',

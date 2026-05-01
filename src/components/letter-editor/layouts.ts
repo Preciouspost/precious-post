@@ -43,6 +43,12 @@ export const LAYOUTS: LayoutDef[] = [
     photoCount: 1,
     slots: [{ left: 0, top: 0, width: 100, height: 100 }],
   },
+  {
+    id: 'single-centered',
+    name: 'Centered',
+    photoCount: 1,
+    slots: [{ left: 12.5, top: 5, width: 75, height: 90 }],
+  },
 
   // ── 2 photos ─────────────────────────────────────────
   {
@@ -56,6 +62,24 @@ export const LAYOUTS: LayoutDef[] = [
     name: 'Stacked',
     photoCount: 2,
     slots: grid(1, 2),
+  },
+  {
+    id: 'two-wide-tall',
+    name: 'Wide + Tall',
+    photoCount: 2,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 60 },
+      { left: 25, top: 61.5, width: 50, height: 38.5 },
+    ],
+  },
+  {
+    id: 'two-asymmetric',
+    name: 'Asymmetric',
+    photoCount: 2,
+    slots: [
+      { left: 0, top: 0, width: 60, height: 100 },
+      { left: 61.5, top: 12, width: 38.5, height: 76 },
+    ],
   },
 
   // ── 3 photos ─────────────────────────────────────────
@@ -85,6 +109,26 @@ export const LAYOUTS: LayoutDef[] = [
       { left: 50.75, top: 65.75, width: 49.25, height: 34.25 },
     ],
   },
+  {
+    id: 'three-diagonal',
+    name: 'Diagonal',
+    photoCount: 3,
+    slots: [
+      { left: 0, top: 0, width: 55, height: 55 },
+      { left: 22.5, top: 22.5, width: 55, height: 55 },
+      { left: 45, top: 45, width: 55, height: 55 },
+    ],
+  },
+  {
+    id: 'three-hero-bottom',
+    name: '2 Top + Hero',
+    photoCount: 3,
+    slots: [
+      { left: 0, top: 0, width: 49.25, height: 34.25 },
+      { left: 50.75, top: 0, width: 49.25, height: 34.25 },
+      { left: 0, top: 35.75, width: 100, height: 64.25 },
+    ],
+  },
 
   // ── 4 photos ─────────────────────────────────────────
   {
@@ -110,6 +154,17 @@ export const LAYOUTS: LayoutDef[] = [
       { left: 67.5, top: 65.75, width: 32.5, height: 34.25 },
     ],
   },
+  {
+    id: 'four-triptych',
+    name: 'Triptych',
+    photoCount: 4,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 55 },
+      { left: 0, top: 56.5, width: 32.33, height: 43.5 },
+      { left: 33.83, top: 56.5, width: 32.33, height: 43.5 },
+      { left: 67.17, top: 56.5, width: 32.83, height: 43.5 },
+    ],
+  },
 
   // ── 5 photos ─────────────────────────────────────────
   {
@@ -130,6 +185,18 @@ export const LAYOUTS: LayoutDef[] = [
       ...grid(3, 1).map(s => ({ ...s, top: 50.75, height: 49.25 })),
     ],
   },
+  {
+    id: 'five-cross',
+    name: 'Cross',
+    photoCount: 5,
+    slots: [
+      { left: 33.83, top: 0, width: 32.33, height: 32 },
+      { left: 0, top: 33.5, width: 32.33, height: 32 },
+      { left: 33.83, top: 33.5, width: 32.33, height: 32 },
+      { left: 67.17, top: 33.5, width: 32.83, height: 32 },
+      { left: 33.83, top: 67, width: 32.33, height: 33 },
+    ],
+  },
 
   // ── 6 photos ─────────────────────────────────────────
   {
@@ -143,6 +210,25 @@ export const LAYOUTS: LayoutDef[] = [
     name: '2 × 3 Grid',
     photoCount: 6,
     slots: grid(2, 3),
+  },
+  {
+    id: 'six-hero-stripe',
+    name: 'Hero + Stripe',
+    photoCount: 6,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 50 },
+      ...grid(5, 1).map(s => ({ ...s, top: 51.5, height: 48.5 })),
+    ],
+  },
+  {
+    id: 'six-two-rows-asymmetric',
+    name: 'Asymmetric Rows',
+    photoCount: 6,
+    slots: [
+      { left: 0, top: 0, width: 60, height: 49.25 },
+      { left: 61.5, top: 0, width: 38.5, height: 49.25 },
+      ...grid(4, 1).map(s => ({ ...s, top: 50.75, height: 49.25 })),
+    ],
   },
 
   // ── 7 photos ─────────────────────────────────────────
@@ -164,6 +250,103 @@ export const LAYOUTS: LayoutDef[] = [
       ...grid(3, 1).map(s => ({ ...s, top: 50.75, height: 49.25 })),
     ],
   },
+  {
+    id: 'seven-hero-six',
+    name: 'Hero + 6',
+    photoCount: 7,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 45 },
+      ...grid(6, 1).map(s => ({ ...s, top: 46.5, height: 53.5 })),
+    ],
+  },
+  {
+    id: 'seven-mosaic',
+    name: 'Mosaic',
+    photoCount: 7,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 55 },
+      { left: 58.5, top: 0, width: 41.5, height: 26.75 },
+      { left: 58.5, top: 28.25, width: 41.5, height: 26.75 },
+      ...grid(4, 1).map(s => ({ ...s, top: 56.5, height: 43.5 })),
+    ],
+  },
+
+  // ── Mosaic: 3 photos ─────────────────────────────────
+  {
+    id: 'mosaic-3-balanced',
+    name: 'Mosaic',
+    photoCount: 3,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 100 },
+      { left: 58.5, top: 0, width: 41.5, height: 49.25 },
+      { left: 58.5, top: 50.75, width: 41.5, height: 49.25 },
+    ],
+  },
+
+  // ── Mosaic: 4 photos ─────────────────────────────────
+  {
+    id: 'mosaic-4-featured',
+    name: 'Featured',
+    photoCount: 4,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 100 },
+      { left: 58.5, top: 0, width: 41.5, height: 32 },
+      { left: 58.5, top: 33.5, width: 41.5, height: 32 },
+      { left: 58.5, top: 67, width: 41.5, height: 33 },
+    ],
+  },
+  {
+    id: 'mosaic-4-right-hero',
+    name: 'Featured Right',
+    photoCount: 4,
+    slots: [
+      { left: 0, top: 0, width: 41.5, height: 32 },
+      { left: 0, top: 33.5, width: 41.5, height: 32 },
+      { left: 0, top: 67, width: 41.5, height: 33 },
+      { left: 43, top: 0, width: 57, height: 100 },
+    ],
+  },
+
+  // ── Mosaic: 5 photos ─────────────────────────────────
+  {
+    id: 'mosaic-5-magazine',
+    name: 'Magazine',
+    photoCount: 5,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 65 },
+      { left: 58.5, top: 0, width: 41.5, height: 31.75 },
+      { left: 58.5, top: 33.25, width: 41.5, height: 31.75 },
+      { left: 0, top: 66.5, width: 49.25, height: 33.5 },
+      { left: 50.75, top: 66.5, width: 49.25, height: 33.5 },
+    ],
+  },
+  {
+    id: 'mosaic-5-left-hero',
+    name: 'Left Hero',
+    photoCount: 5,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 49.25 },
+      { left: 58.5, top: 0, width: 41.5, height: 49.25 },
+      { left: 0, top: 50.75, width: 32.33, height: 49.25 },
+      { left: 33.83, top: 50.75, width: 32.33, height: 49.25 },
+      { left: 67.17, top: 50.75, width: 32.83, height: 49.25 },
+    ],
+  },
+
+  // ── Mosaic: 6 photos ─────────────────────────────────
+  {
+    id: 'mosaic-6-magazine',
+    name: 'Magazine',
+    photoCount: 6,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 55 },
+      { left: 58.5, top: 0, width: 41.5, height: 26.75 },
+      { left: 58.5, top: 28.25, width: 41.5, height: 26.75 },
+      { left: 0, top: 56.5, width: 32.33, height: 43.5 },
+      { left: 33.83, top: 56.5, width: 32.33, height: 43.5 },
+      { left: 67.17, top: 56.5, width: 32.83, height: 43.5 },
+    ],
+  },
 
   // ── 8 photos ─────────────────────────────────────────
   {
@@ -177,6 +360,26 @@ export const LAYOUTS: LayoutDef[] = [
     name: '2 × 4 Grid',
     photoCount: 8,
     slots: grid(2, 4),
+  },
+  {
+    id: 'eight-hero-seven',
+    name: 'Hero + 7',
+    photoCount: 8,
+    slots: [
+      { left: 0, top: 0, width: 100, height: 50 },
+      ...grid(7, 1).map(s => ({ ...s, top: 51.5, height: 48.5 })),
+    ],
+  },
+  {
+    id: 'eight-mosaic',
+    name: 'Mosaic',
+    photoCount: 8,
+    slots: [
+      { left: 0, top: 0, width: 57, height: 55 },
+      { left: 58.5, top: 0, width: 41.5, height: 26.75 },
+      { left: 58.5, top: 28.25, width: 41.5, height: 26.75 },
+      ...grid(5, 1).map(s => ({ ...s, top: 56.5, height: 43.5 })),
+    ],
   },
 
   // ── Side-by-side: 1 photo ─────────────────────────────

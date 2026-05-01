@@ -87,16 +87,8 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
     })
   }
 
-  function adjustPhotoPosition(id: string, axis: 'x' | 'y', value: number) {
-    setPhotos(prev => prev.map(p => p.id === id ? { ...p, [axis]: value } : p))
-  }
-
-  function swapPhotos(i: number, j: number) {
-    setPhotos(prev => {
-      const next = [...prev]
-      ;[next[i], next[j]] = [next[j], next[i]]
-      return next
-    })
+  function panPhoto(index: number, x: number, y: number) {
+    setPhotos(prev => prev.map((p, i) => i === index ? { ...p, x, y } : p))
   }
 
   // Drag-to-reorder handlers
@@ -227,16 +219,6 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
             )}
           </Section>
 
-          {/* Photo area height — only for vertical stacked layouts */}
-          {!isSideBySide && (
-            <Section title={`Photo area height: ${photoAreaHeight}%`}>
-              <input
-                type="range" min={20} max={70} value={photoAreaHeight}
-                onChange={e => setPhotoAreaHeight(+e.target.value)}
-                className="w-full"
-              />
-            </Section>
-          )}
 
           {/* Photos */}
           <Section title={`Photos (${photos.length}/${MAX_PHOTOS})`}>
@@ -254,43 +236,38 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
             </div>
 
             {photos.length > 0 && (
-              <div className="space-y-3 mt-3">
+              <div className="space-y-2 mt-3">
                 <p className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>
-                  ☰ Drag photos to reorder slots
+                  Drag here to reorder · Drag in preview to reposition
                 </p>
-                {photos.map((photo, i) => (
-                  <div
-                    key={photo.id}
-                    draggable
-                    onDragStart={() => handleDragStart(i)}
-                    onDragEnter={() => handleDragEnter(i)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={e => e.preventDefault()}
-                    className="rounded-xl overflow-hidden border transition-all cursor-grab active:cursor-grabbing"
-                    style={{
-                      borderColor: dragOverIndex === i ? 'var(--color-mauve)' : '#e5e7eb',
-                      opacity: dragIndexRef.current === i ? 0.5 : 1,
-                      boxShadow: dragOverIndex === i ? '0 0 0 2px var(--color-mauve)' : 'none',
-                    }}
-                  >
-                    <div className="relative">
-                      <div className="absolute top-1 left-1 bg-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow" style={{ color: 'var(--color-mauve)' }}>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {photos.map((photo, i) => (
+                    <div
+                      key={photo.id}
+                      draggable
+                      onDragStart={() => handleDragStart(i)}
+                      onDragEnter={() => handleDragEnter(i)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={e => e.preventDefault()}
+                      className="relative rounded-lg overflow-hidden cursor-grab active:cursor-grabbing transition-all"
+                      style={{
+                        aspectRatio: '1',
+                        border: dragOverIndex === i ? '2px solid var(--color-mauve)' : '2px solid transparent',
+                        opacity: dragIndexRef.current === i ? 0.4 : 1,
+                      }}
+                    >
+                      <div className="absolute top-0.5 left-0.5 bg-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shadow-sm z-10" style={{ color: 'var(--color-mauve)', fontSize: 9 }}>
                         {i + 1}
                       </div>
-                      <img src={photo.url} alt="" className="w-full h-20 object-cover" style={{ objectPosition: `${photo.x}% ${photo.y}%` }} />
+                      <img src={photo.url} alt="" className="w-full h-full object-cover" style={{ objectPosition: `${photo.x}% ${photo.y}%` }} />
                       <button
                         onClick={() => removePhoto(photo.id)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"
+                        className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center z-10"
+                        style={{ fontSize: 10 }}
                       >×</button>
                     </div>
-                    <div className="p-2 space-y-1">
-                      <label className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>Horizontal focus</label>
-                      <input type="range" min={0} max={100} value={photo.x} onChange={e => adjustPhotoPosition(photo.id, 'x', +e.target.value)} className="w-full" />
-                      <label className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>Vertical focus</label>
-                      <input type="range" min={0} max={100} value={photo.y} onChange={e => adjustPhotoPosition(photo.id, 'y', +e.target.value)} className="w-full" />
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </Section>
@@ -414,7 +391,8 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
               senderName={profile.name}
               address={selectedAddress}
               scale={PREVIEW_SCALE}
-              onSwapPhotos={swapPhotos}
+              onPanPhoto={panPhoto}
+              onResizePhotoArea={isSideBySide ? undefined : setPhotoAreaHeight}
             />
           </div>
         </div>
