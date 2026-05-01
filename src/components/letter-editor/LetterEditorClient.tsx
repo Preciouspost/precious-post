@@ -65,7 +65,10 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
     setPhotos(prev => {
       const next = [...prev, ...newPhotos]
       const def = getDefaultLayout(next.length)
-      if (def) setLayout(def.id)
+      if (def) {
+        setLayout(def.id)
+        if (def.recommendedHeight) setPhotoAreaHeight(def.recommendedHeight)
+      }
       return next
     })
     setUploadingPhotos(false)
@@ -82,7 +85,10 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
     setPhotos(prev => {
       const next = prev.filter(p => p.id !== id)
       const def = getDefaultLayout(next.length)
-      if (def) setLayout(def.id)
+      if (def) {
+        setLayout(def.id)
+        if (def.recommendedHeight) setPhotoAreaHeight(def.recommendedHeight)
+      }
       return next
     })
   }
@@ -284,7 +290,7 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
                   {getLayoutsForCount(photos.length).map(l => (
                     <button
                       key={l.id}
-                      onClick={() => setLayout(l.id)}
+                      onClick={() => { setLayout(l.id); if (l.recommendedHeight) setPhotoAreaHeight(l.recommendedHeight) }}
                       className="px-2 py-2 rounded-xl border text-xs transition-colors text-left"
                       style={{
                         borderColor: layout === l.id ? 'var(--color-mauve)' : '#e5e7eb',
