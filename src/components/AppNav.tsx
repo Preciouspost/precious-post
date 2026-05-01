@@ -8,9 +8,10 @@ import { PreciousPostLogo } from './Logo'
 import { createClient } from '@/lib/supabase/client'
 
 const links = [
+  { href: '/', label: 'Home' },
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/addresses', label: 'Address Book' },
   { href: '/account', label: 'My Account' },
+  { href: '/faq', label: 'FAQ' },
 ]
 
 export function AppNav() {
