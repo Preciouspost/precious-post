@@ -23,6 +23,8 @@ interface Props {
   photoCroppedUrls?: string[]
   /** Called when user taps an empty photo slot — passes the slot index */
   onSlotClick?: (slotIndex: number) => void
+  /** Called when user taps an occupied photo slot — for mobile crop/pan editing */
+  onPhotoTap?: (slotIndex: number) => void
 }
 
 const PAGE_W = 816
@@ -30,7 +32,7 @@ const PAGE_H = 1056
 const PADDING = 40
 
 export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPreview(
-  { layout, photos, photoAreaHeight, font, fontSize, letterText, senderName, scale = 1, onPanPhoto, onResizePhotoArea, photoCroppedUrls, onSlotClick },
+  { layout, photos, photoAreaHeight, font, fontSize, letterText, senderName, scale = 1, onPanPhoto, onResizePhotoArea, photoCroppedUrls, onSlotClick, onPhotoTap },
   ref
 ) {
   const layoutDef = getLayout(layout)
@@ -146,7 +148,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
               flexShrink: 0,
             }}
           >
-            <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} />
+            <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} onPhotoTap={onPhotoTap} />
             {resizeHandle}
           </div>
 
@@ -192,7 +194,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
             </div>
           )}
           <div style={{ width: `${photoWidthPct}%`, flexShrink: 0, position: 'relative' }}>
-            {layoutDef && <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} />}
+            {layoutDef && <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} onPhotoTap={onPhotoTap} />}
           </div>
           {layoutDef?.textPosition === 'right' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
@@ -213,7 +215,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
         <>
           {photos.length > 0 && layoutDef && (
             <div style={{ width: '100%', height: photoAreaPx, flexShrink: 0, position: 'relative' }}>
-              <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} />
+              <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} onPhotoTap={onPhotoTap} />
               {resizeHandle}
             </div>
           )}
@@ -278,12 +280,14 @@ function PhotoGrid({
   croppedUrls,
   onPan,
   onSlotClick,
+  onPhotoTap,
 }: {
   slots: SlotDef[]
   photos: PhotoItem[]
   croppedUrls?: string[]
   onPan?: (index: number, x: number, y: number) => void
   onSlotClick?: (slotIndex: number) => void
+  onPhotoTap?: (slotIndex: number) => void
 }) {
   const [panningSlot, setPanningSlot] = useState<number | null>(null)
 
@@ -326,12 +330,17 @@ function PhotoGrid({
         const isPanning = panningSlot === i
         const isEmpty = !photo
         const isClickable = isEmpty && !!onSlotClick
+        const isTappable = !!photo && !!onPhotoTap
 
         return (
           <div
             key={i}
-            onMouseDown={e => handleMouseDown(e, i)}
-            onClick={isClickable ? () => onSlotClick!(i) : undefined}
+            onMouseDown={isTappable ? undefined : e => handleMouseDown(e, i)}
+            onClick={
+              isTappable ? () => onPhotoTap!(i)
+              : isClickable ? () => onSlotClick!(i)
+              : undefined
+            }
             style={{
               position: 'absolute',
               left: `${slot.left}%`,
@@ -341,7 +350,7 @@ function PhotoGrid({
               backgroundColor: '#F9EDE8',
               borderRadius: 6,
               overflow: 'hidden',
-              cursor: isClickable ? 'pointer' : onPan && photo ? (isPanning ? 'grabbing' : 'grab') : 'default',
+              cursor: isTappable ? 'pointer' : isClickable ? 'pointer' : onPan && photo ? (isPanning ? 'grabbing' : 'grab') : 'default',
               outline: isPanning ? '3px solid #b08090' : 'none',
               outlineOffset: '-3px',
             }}
