@@ -37,6 +37,7 @@ export interface PhotoItem {
   y: number
   width: number
   height: number
+  zoom?: number  // 1.0 = default fill, >1 = zoomed in
 }
 
 export interface Letter {

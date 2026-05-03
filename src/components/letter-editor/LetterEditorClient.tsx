@@ -26,7 +26,7 @@ const draftKey = (userId: string) => `precious-post-draft-${userId}`
 
 type MobileTab = 'photos' | 'layout' | 'font' | 'letter' | 'to'
 
-// ─── SVG tab icons ────────────────────────────────────────────────────────────
+// ─── SVG icons ────────────────────────────────────────────────────────────────
 
 function IconCamera({ active }: { active: boolean }) {
   const c = active ? 'var(--color-mauve)' : '#9ca3af'
@@ -48,8 +48,17 @@ function IconPerson({ active }: { active: boolean }) {
   const c = active ? 'var(--color-mauve)' : '#9ca3af'
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 }
-function IconRefresh() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+function IconUndo({ color = 'currentColor' }: { color?: string }) {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
+}
+function IconSwap({ color = 'currentColor' }: { color?: string }) {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+}
+function IconUpload({ color = 'currentColor' }: { color?: string }) {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+}
+function IconScale({ color = 'currentColor' }: { color?: string }) {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -80,36 +89,48 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   const dragIndexRef = useRef<number | null>(null)
   const [recipientError, setRecipientError] = useState(false)
 
+  // Undo — saved snapshot before each destructive photo mutation
+  const [prevPhotos, setPrevPhotos] = useState<PhotoItem[] | null>(null)
+
   // Mobile state
   const [isMobile, setIsMobile] = useState(false)
   const [mobileScale, setMobileScale] = useState(0.45)
   const [mobileTab, setMobileTab] = useState<MobileTab>('to')
 
-  // Tray photo selected for reorder (mobile)
-  const [selectedTrayIdx, setSelectedTrayIdx] = useState<number | null>(null)
+  // Pixory-style photo editing
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  const [swapMode, setSwapMode] = useState(false)
 
-  // Photo crop/pan editor (mobile)
-  const [editingPhotoIndex, setEditingPhotoIndex] = useState<number | null>(null)
-  const photoPanRef = useRef<{ startX: number; startY: number; startPhotoX: number; startPhotoY: number } | null>(null)
-
-  useEffect(() => {
-    function update() {
-      const mobile = window.innerWidth < 768
-      setIsMobile(mobile)
-      if (mobile) setMobileScale((window.innerWidth - 16) / 816)
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
-
-  // Pending slot for photo assignment
+  // Pending slot for empty-slot click → open file picker
   const [pendingSlot, setPendingSlot] = useState<number | null>(null)
   const pendingSlotRef = useRef<number | null>(null)
   function updatePendingSlot(slot: number | null) {
     setPendingSlot(slot)
     pendingSlotRef.current = slot
   }
+
+  // Replacing slot — "Change photo" replaces in-place instead of appending
+  const replacingSlotRef = useRef<number | null>(null)
+
+  // Always-current photos ref for use inside useCallback without stale closures
+  const photosRef = useRef(photos)
+  useEffect(() => { photosRef.current = photos }, [photos])
+
+  useEffect(() => {
+    function update() {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (mobile) {
+        const scaleByWidth = (window.innerWidth - 16) / 816
+        // nav=50, bottom sheet content≈160, tab bar=54, padding=16
+        const scaleByHeight = (window.innerHeight - 50 - 160 - 54 - 16) / 1056
+        setMobileScale(Math.min(scaleByWidth, Math.max(0.28, scaleByHeight)))
+      }
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   useEffect(() => {
     try {
@@ -121,11 +142,16 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   const currentLayoutDef = getLayout(layout)
   const isSideBySide = currentLayoutDef?.textPosition === 'right' || currentLayoutDef?.textPosition === 'left'
 
+  // ─── File upload ─────────────────────────────────────────────────────────────
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const remaining = MAX_PHOTOS - photos.length
+    const replacingSlot = replacingSlotRef.current
+    const targetSlot = pendingSlotRef.current
+    const remaining = replacingSlot !== null ? 1 : MAX_PHOTOS - photosRef.current.length
     const files = acceptedFiles.slice(0, remaining)
     if (!files.length) return
-    const targetSlot = pendingSlotRef.current
+    // Snapshot for undo
+    const snapshot = [...photosRef.current]
     setUploadingPhotos(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -140,37 +166,55 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         newPhotos.push({ id: path, url: publicUrl, x: 50, y: 50, width: 100, height: 100 })
       }
     }
-    setPhotos(prev => {
-      let next = [...prev, ...newPhotos]
-      if (targetSlot !== null && newPhotos.length === 1) {
-        const inserted = next.pop()!
-        next.splice(Math.min(targetSlot, next.length), 0, inserted)
-      }
-      const def = getDefaultLayout(next.length)
-      if (def) { setLayout(def.id); if (def.recommendedHeight) setPhotoAreaHeight(def.recommendedHeight) }
-      return next
-    })
+    if (newPhotos.length > 0) {
+      setPrevPhotos(snapshot)
+      setPhotos(prev => {
+        if (replacingSlot !== null && newPhotos.length === 1) {
+          // Replace in-place at specified slot
+          const next = [...prev]
+          next[replacingSlot] = { ...newPhotos[0] }
+          return next
+        }
+        let next = [...prev, ...newPhotos]
+        if (targetSlot !== null && newPhotos.length === 1) {
+          const inserted = next.pop()!
+          next.splice(Math.min(targetSlot, next.length), 0, inserted)
+        }
+        const def = getDefaultLayout(next.length)
+        if (def) { setLayout(def.id); if (def.recommendedHeight) setPhotoAreaHeight(def.recommendedHeight) }
+        return next
+      })
+    }
+    replacingSlotRef.current = null
     updatePendingSlot(null)
     setUploadingPhotos(false)
-  }, [photos.length])
+  }, [])
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop, accept: { 'image/*': [] }, maxFiles: MAX_PHOTOS,
-    disabled: photos.length >= MAX_PHOTOS || uploadingPhotos, noClick: true,
+    disabled: uploadingPhotos, noClick: true,
   })
 
+  // ─── Photo mutations ─────────────────────────────────────────────────────────
+
   function removePhoto(id: string) {
+    setPrevPhotos([...photos])
     setPhotos(prev => {
       const next = prev.filter(p => p.id !== id)
       const def = getDefaultLayout(next.length)
       if (def) { setLayout(def.id); if (def.recommendedHeight) setPhotoAreaHeight(def.recommendedHeight) }
       return next
     })
-    setSelectedTrayIdx(null)
+    setSelectedSlot(null)
+    setSwapMode(false)
   }
 
   function panPhoto(index: number, x: number, y: number) {
     setPhotos(prev => prev.map((p, i) => i === index ? { ...p, x, y } : p))
+  }
+
+  function zoomPhoto(index: number, zoom: number) {
+    setPhotos(prev => prev.map((p, i) => i === index ? { ...p, zoom } : p))
   }
 
   function handleDragStart(index: number) { dragIndexRef.current = index }
@@ -178,30 +222,42 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   function handleDragEnd() {
     const from = dragIndexRef.current; const to = dragOverIndex
     if (from !== null && to !== null && from !== to) {
+      setPrevPhotos([...photos])
       setPhotos(prev => { const next = [...prev]; const [m] = next.splice(from, 1); next.splice(to, 0, m); return next })
     }
     dragIndexRef.current = null; setDragOverIndex(null)
   }
 
-  function moveTrayPhoto(from: number, to: number) {
-    setPhotos(prev => { const next = [...prev]; const [m] = next.splice(from, 1); next.splice(to, 0, m); return next })
-    setSelectedTrayIdx(to)
-  }
+  // ─── Slot / photo tap handlers ────────────────────────────────────────────────
 
+  /** Tap on an empty slot — open file picker to fill that slot */
   function handleSlotClick(slotIndex: number) {
     updatePendingSlot(slotIndex)
     if (isMobile) setMobileTab('photos')
     open()
   }
 
+  /** Tap on an occupied photo slot — Pixory-style: select or swap */
   function handlePhotoTap(slotIndex: number) {
-    setEditingPhotoIndex(slotIndex)
-  }
-
-  function assignTrayPhotoToSlot(trayIndex: number) {
-    if (pendingSlot === null) return
-    setPhotos(prev => { const next = [...prev]; const [p] = next.splice(trayIndex, 1); next.splice(Math.min(pendingSlot, next.length), 0, p); return next })
-    updatePendingSlot(null)
+    if (swapMode && selectedSlot !== null) {
+      if (slotIndex !== selectedSlot) {
+        // Execute swap
+        setPrevPhotos([...photos])
+        setPhotos(prev => {
+          const next = [...prev]
+          const temp = next[selectedSlot]
+          next[selectedSlot] = next[slotIndex]
+          next[slotIndex] = temp
+          return next
+        })
+      }
+      setSwapMode(false)
+      setSelectedSlot(null)
+    } else {
+      // Select slot for editing
+      setSelectedSlot(slotIndex)
+      setSwapMode(false)
+    }
   }
 
   function autofill() {
@@ -212,24 +268,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     }))
   }
 
-  // Touch pan handlers for the photo edit modal
-  function handlePhotoPanTouchStart(e: React.TouchEvent) {
-    if (editingPhotoIndex === null) return
-    const touch = e.touches[0]
-    const photo = photos[editingPhotoIndex]
-    photoPanRef.current = { startX: touch.clientX, startY: touch.clientY, startPhotoX: photo.x, startPhotoY: photo.y }
-  }
-  function handlePhotoPanTouchMove(e: React.TouchEvent) {
-    if (!photoPanRef.current || editingPhotoIndex === null) return
-    e.preventDefault()
-    const touch = e.touches[0]
-    const dx = touch.clientX - photoPanRef.current.startX
-    const dy = touch.clientY - photoPanRef.current.startY
-    const newX = Math.max(0, Math.min(100, photoPanRef.current.startPhotoX - (dx / 1.8)))
-    const newY = Math.max(0, Math.min(100, photoPanRef.current.startPhotoY - (dy / 1.8)))
-    panPhoto(editingPhotoIndex, newX, newY)
-  }
-  function handlePhotoPanTouchEnd() { photoPanRef.current = null }
+  // ─── Submit / clear ───────────────────────────────────────────────────────────
 
   function validateAndReview() {
     if (!addressId) {
@@ -274,68 +313,129 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     try { localStorage.removeItem(draftKey(profile.user_id)) } catch {}
     setPhotos([]); setLetterText(''); setAddressId(''); setLayout('hero-2-below')
     setPhotoAreaHeight(45); setFont('serif'); setFontSize('medium')
+    setPrevPhotos(null); setSelectedSlot(null); setSwapMode(false)
   }
 
-  // ─── Shared panel content ───────────────────────────────────────────────────
+  // ─── Photo edit panel (shared mobile + desktop) ───────────────────────────────
+
+  const activePhoto = selectedSlot !== null ? photos[selectedSlot] : null
+
+  const photoEditPanel = activePhoto ? (
+    <div style={{ padding: '10px 14px' }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-charcoal)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: 'var(--color-mauve)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'white', fontWeight: 700, flexShrink: 0 }}>
+            {selectedSlot! + 1}
+          </span>
+          Edit Photo {selectedSlot! + 1}
+        </span>
+        <button
+          onClick={() => { setSelectedSlot(null); setSwapMode(false) }}
+          style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-charcoal-light)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 8px' }}>
+          Done ✓
+        </button>
+      </div>
+
+      {/* Scale slider */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+          <IconScale color="var(--color-charcoal-light)" />
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-charcoal-light)', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>Scale</span>
+          <span style={{ fontSize: 10, color: 'var(--color-charcoal-light)' }}>{Math.round((activePhoto.zoom ?? 1) * 100)}%</span>
+        </div>
+        <input
+          type="range" min="100" max="300" step="5"
+          value={Math.round((activePhoto.zoom ?? 1) * 100)}
+          onChange={e => {
+            if (selectedSlot === null) return
+            zoomPhoto(selectedSlot, parseInt(e.target.value) / 100)
+          }}
+          style={{ width: '100%', accentColor: 'var(--color-mauve)', height: 20, cursor: 'pointer' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 1 }}>
+          <span style={{ fontSize: 9, color: '#c0b0b5' }}>1×</span>
+          <span style={{ fontSize: 9, color: '#c0b0b5' }}>Drag to reposition in preview</span>
+          <span style={{ fontSize: 9, color: '#c0b0b5' }}>3×</span>
+        </div>
+      </div>
+
+      {/* Swap / Change buttons */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => setSwapMode(m => !m)}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', borderRadius: 10, border: `1.5px solid ${swapMode ? 'var(--color-mauve)' : '#e5e7eb'}`, backgroundColor: swapMode ? 'var(--color-blush)' : 'white', color: swapMode ? 'var(--color-mauve)' : 'var(--color-charcoal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s' }}>
+          <IconSwap color={swapMode ? 'var(--color-mauve)' : '#9ca3af'} />
+          Swap
+        </button>
+        <button
+          onClick={() => { if (selectedSlot !== null) { replacingSlotRef.current = selectedSlot; open() } }}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', borderRadius: 10, border: '1.5px solid #e5e7eb', backgroundColor: 'white', color: 'var(--color-charcoal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <IconUpload color="#9ca3af" />
+          Change
+        </button>
+      </div>
+
+      {swapMode && (
+        <p style={{ fontSize: 11, color: 'var(--color-mauve)', textAlign: 'center', marginTop: 8, fontWeight: 600 }}>
+          Tap another photo in the preview to swap →
+        </p>
+      )}
+    </div>
+  ) : null
+
+  // ─── Shared panel content ─────────────────────────────────────────────────────
 
   const photoTrayPanel = (
     <div style={{ position: 'relative' }}>
       {pendingSlot !== null && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 12px', backgroundColor: 'var(--color-blush)', borderBottom: '1px solid var(--color-blush-dark)' }}>
-          <p style={{ fontSize: 11, color: 'var(--color-mauve)', fontWeight: 600 }}>Placing photo in slot {pendingSlot + 1} — tap a photo to move it there</p>
+          <p style={{ fontSize: 11, color: 'var(--color-mauve)', fontWeight: 600 }}>Placing photo in slot {pendingSlot + 1}</p>
           <button onClick={() => updatePendingSlot(null)} style={{ fontSize: 11, color: 'var(--color-charcoal-light)', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', overflowX: 'auto' }}>
         {/* Add button */}
-        <button onClick={() => open()} disabled={photos.length >= MAX_PHOTOS || uploadingPhotos}
+        <button
+          onClick={() => open()}
+          disabled={photos.length >= MAX_PHOTOS || uploadingPhotos}
           style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 10, border: '2px dashed var(--color-blush-dark)', backgroundColor: 'var(--color-blush)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: photos.length >= MAX_PHOTOS ? 'not-allowed' : 'pointer', opacity: photos.length >= MAX_PHOTOS ? 0.4 : 1 }}>
-          {uploadingPhotos ? <span style={{ fontSize: 10, color: 'var(--color-charcoal-light)' }}>…</span>
-            : <><span style={{ fontSize: 24, color: 'var(--color-mauve)', lineHeight: 1, fontWeight: 300 }}>+</span><span style={{ fontSize: 9, color: 'var(--color-charcoal-light)', fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase' }}>{photos.length === 0 ? 'Add photos' : 'Add more'}</span></>}
+          {uploadingPhotos
+            ? <span style={{ fontSize: 10, color: 'var(--color-charcoal-light)' }}>…</span>
+            : <>
+                <span style={{ fontSize: 24, color: 'var(--color-mauve)', lineHeight: 1, fontWeight: 300 }}>+</span>
+                <span style={{ fontSize: 9, color: 'var(--color-charcoal-light)', fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase' }}>{photos.length === 0 ? 'Add photos' : 'Add more'}</span>
+              </>}
         </button>
 
         {photos.length > 0 && <div style={{ width: 1, height: 52, backgroundColor: 'var(--color-blush-dark)', flexShrink: 0 }} />}
 
-        {photos.map((photo, i) => {
-          const isTarget = pendingSlot !== null && i !== pendingSlot
-          const isSelected = selectedTrayIdx === i && pendingSlot === null
-          return (
-            <div key={photo.id} style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              {/* Reorder arrows — only on mobile when selected */}
-              {isSelected && isMobile && (
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button onClick={() => i > 0 && moveTrayPhoto(i, i - 1)} disabled={i === 0}
-                    style={{ width: 28, height: 20, borderRadius: 4, border: '1px solid var(--color-blush-dark)', backgroundColor: i === 0 ? 'transparent' : 'var(--color-blush)', fontSize: 11, color: 'var(--color-mauve)', cursor: i === 0 ? 'default' : 'pointer', opacity: i === 0 ? 0.3 : 1 }}>◀</button>
-                  <button onClick={() => i < photos.length - 1 && moveTrayPhoto(i, i + 1)} disabled={i === photos.length - 1}
-                    style={{ width: 28, height: 20, borderRadius: 4, border: '1px solid var(--color-blush-dark)', backgroundColor: i === photos.length - 1 ? 'transparent' : 'var(--color-blush)', fontSize: 11, color: 'var(--color-mauve)', cursor: i === photos.length - 1 ? 'default' : 'pointer', opacity: i === photos.length - 1 ? 0.3 : 1 }}>▶</button>
-                </div>
-              )}
-
-              <div
-                draggable
-                onDragStart={() => handleDragStart(i)} onDragEnter={() => handleDragEnter(i)}
-                onDragEnd={handleDragEnd} onDragOver={e => e.preventDefault()}
-                onClick={() => {
-                  if (isTarget) { assignTrayPhotoToSlot(i); return }
-                  setSelectedTrayIdx(selectedTrayIdx === i ? null : i)
-                }}
-                data-tray-index={i}
-                style={{ flexShrink: 0, position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: dragOverIndex === i ? '2.5px solid var(--color-mauve)' : isSelected ? '2.5px solid var(--color-mauve)' : isTarget ? '2.5px solid #b08090' : '2px solid var(--color-blush-dark)', opacity: dragIndexRef.current === i ? 0.4 : 1, cursor: isTarget ? 'pointer' : 'grab' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${photo.x}% ${photo.y}%`, userSelect: 'none', display: 'block' }} />
-                <div style={{ position: 'absolute', top: 3, left: 3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--color-mauve)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', padding: '0 3px' }}>{i + 1}</div>
-                <button onClick={e => { e.stopPropagation(); removePhoto(photo.id) }} style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
-                {isTarget && <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(176,128,144,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 18, color: 'white' }}>↩</span></div>}
-              </div>
-            </div>
-          )
-        })}
+        {photos.map((photo, i) => (
+          <div
+            key={photo.id}
+            draggable
+            onDragStart={() => handleDragStart(i)}
+            onDragEnter={() => handleDragEnter(i)}
+            onDragEnd={handleDragEnd}
+            onDragOver={e => e.preventDefault()}
+            style={{ flexShrink: 0, position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: dragOverIndex === i ? '2.5px solid var(--color-mauve)' : '2px solid var(--color-blush-dark)', opacity: dragIndexRef.current === i ? 0.4 : 1, cursor: 'grab' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photo.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${photo.x}% ${photo.y}%`, userSelect: 'none', display: 'block', transform: photo.zoom && photo.zoom !== 1 ? `scale(${photo.zoom})` : undefined, transformOrigin: `${photo.x}% ${photo.y}%` }} />
+            <div style={{ position: 'absolute', top: 3, left: 3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--color-mauve)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', padding: '0 3px' }}>{i + 1}</div>
+            <button onClick={e => { e.stopPropagation(); removePhoto(photo.id) }} style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
+          </div>
+        ))}
 
         {photos.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', paddingLeft: 4 }}>Add photos, or tap an empty slot in the preview above</p>}
-        {photos.length >= 2 && <><div style={{ flex: 1, minWidth: 8 }} /><button onClick={autofill} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 20, border: '1px solid var(--color-blush-dark)', backgroundColor: 'var(--color-blush)', fontSize: 11, fontWeight: 600, color: 'var(--color-mauve)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Autofill</button></>}
+        {photos.length >= 2 && (
+          <>
+            <div style={{ flex: 1, minWidth: 8 }} />
+            <button onClick={autofill} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 20, border: '1px solid var(--color-blush-dark)', backgroundColor: 'var(--color-blush)', fontSize: 11, fontWeight: 600, color: 'var(--color-mauve)', cursor: 'pointer', whiteSpace: 'nowrap' }}>Autofill</button>
+          </>
+        )}
       </div>
-      {isMobile && photos.length > 0 && selectedTrayIdx === null && (
-        <p style={{ fontSize: 10, color: 'var(--color-charcoal-light)', textAlign: 'center', paddingBottom: 6 }}>Tap a photo to select · tap again to reorder</p>
+      {isMobile && photos.length > 0 && (
+        <p style={{ fontSize: 10, color: 'var(--color-charcoal-light)', textAlign: 'center', paddingBottom: 6 }}>Tap photo in preview to edit · drag here to reorder</p>
       )}
     </div>
   )
@@ -388,8 +488,11 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   const letterPanel = (
     <div style={{ padding: '8px 12px' }}>
       <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-charcoal-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{letterText.length}/{MAX_CHARS}</p>
-      <textarea value={letterText} onChange={e => setLetterText(e.target.value.slice(0, MAX_CHARS))}
-        placeholder="Write your letter here…" rows={4}
+      <textarea
+        value={letterText}
+        onChange={e => setLetterText(e.target.value.slice(0, MAX_CHARS))}
+        placeholder="Write your letter here…"
+        rows={4}
         style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 16, outline: 'none', resize: 'none', boxSizing: 'border-box', fontFamily: font === 'handwritten' ? "'Caveat', cursive" : font === 'serif' ? "'Playfair Display', serif" : 'system-ui' }}
       />
     </div>
@@ -400,7 +503,9 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
       {recipientError && <p style={{ fontSize: 12, color: '#ef4444', marginBottom: 6 }}>Please select a recipient before submitting.</p>}
       {addresses.length === 0
         ? <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', marginBottom: 8 }}>No addresses saved yet.</p>
-        : <select value={addressId} onChange={e => { setAddressId(e.target.value); setRecipientError(false) }}
+        : <select
+            value={addressId}
+            onChange={e => { setAddressId(e.target.value); setRecipientError(false) }}
             style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: `1px solid ${recipientError ? '#ef4444' : '#e5e7eb'}`, fontSize: 16, outline: 'none', marginBottom: 8, backgroundColor: 'white' }}>
             <option value="">Select recipient…</option>
             {addresses.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -419,7 +524,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     { id: 'to',      label: 'To',      icon: a => <IconPerson active={a} /> },
   ]
 
-  // ─── Mobile layout ──────────────────────────────────────────────────────────
+  // ─── Mobile layout ────────────────────────────────────────────────────────────
 
   if (isMobile) {
     return (
@@ -429,102 +534,108 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', height: 50, flexShrink: 0, backgroundColor: 'white', borderBottom: '1px solid var(--color-blush-dark)', zIndex: 10 }}>
           <Link href="/dashboard" style={{ fontSize: 13, color: 'var(--color-charcoal-light)', textDecoration: 'none' }}>← Back</Link>
           <PreciousPostLogo size="sm" />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={clearEditor} title="Start over"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: '50%', border: '1px solid #e5e7eb', backgroundColor: 'white', color: 'var(--color-charcoal-light)', cursor: 'pointer' }}>
-              <IconRefresh />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Undo */}
+            {prevPhotos !== null && (
+              <button
+                onClick={() => { setPhotos(prevPhotos); setPrevPhotos(null) }}
+                title="Undo"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: '50%', border: '1px solid #e5e7eb', backgroundColor: 'white', color: 'var(--color-charcoal-light)', cursor: 'pointer' }}>
+                <IconUndo />
+              </button>
+            )}
+            {/* Clear */}
+            <button
+              onClick={clearEditor}
+              style={{ padding: '5px 10px', borderRadius: 16, border: '1px solid #e5e7eb', backgroundColor: 'white', color: 'var(--color-charcoal-light)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              Clear ×
             </button>
-            <button onClick={validateAndReview} disabled={submitting}
-              style={{ padding: '7px 14px', borderRadius: 20, backgroundColor: 'var(--color-mauve)', color: 'white', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
+            {/* Submit */}
+            <button
+              onClick={validateAndReview}
+              disabled={submitting}
+              style={{ padding: '7px 13px', borderRadius: 20, backgroundColor: 'var(--color-mauve)', color: 'white', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>
               Submit →
             </button>
           </div>
         </nav>
 
         {/* Preview */}
-        <div {...getRootProps()} style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', backgroundColor: 'var(--color-blush)', paddingTop: 8 }}>
+        <div
+          {...getRootProps()}
+          onClick={() => { if (selectedSlot !== null) { setSelectedSlot(null); setSwapMode(false) } }}
+          style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', backgroundColor: 'var(--color-blush)', paddingTop: 8 }}>
           <input {...getInputProps()} />
           {isDragActive && (
             <div style={{ position: 'absolute', inset: 0, zIndex: 20, backgroundColor: 'rgba(176,128,144,0.18)', border: '3px dashed var(--color-mauve)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
               <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-mauve)' }}>Drop photos here</p>
             </div>
           )}
-          <div style={{ width: 816 * mobileScale, height: 1056 * mobileScale, flexShrink: 0, boxShadow: '0 2px 16px rgba(0,0,0,0.10)', borderRadius: 3, overflow: 'hidden' }}>
-            <LetterPreview ref={previewRef} layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100} font={font} fontSize={fontSize} letterText={letterText} senderName={profile.name} address={selectedAddress} scale={mobileScale} onResizePhotoArea={isSideBySide ? undefined : setPhotoAreaHeight} onSlotClick={handleSlotClick} onPhotoTap={handlePhotoTap} />
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: 816 * mobileScale, height: 1056 * mobileScale, flexShrink: 0, boxShadow: '0 2px 16px rgba(0,0,0,0.10)', borderRadius: 3, overflow: 'hidden' }}>
+            <LetterPreview
+              ref={previewRef}
+              layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100}
+              font={font} fontSize={fontSize} letterText={letterText}
+              senderName={profile.name} address={selectedAddress} scale={mobileScale}
+              onPanPhoto={panPhoto}
+              onResizePhotoArea={isSideBySide ? undefined : setPhotoAreaHeight}
+              onSlotClick={handleSlotClick}
+              onPhotoTap={handlePhotoTap}
+              selectedSlot={selectedSlot}
+              swapMode={swapMode}
+            />
           </div>
         </div>
 
-        {/* Bottom sheet — locked to bottom */}
+        {/* Bottom sheet */}
         <div style={{ flexShrink: 0, backgroundColor: 'white', borderTop: '1px solid var(--color-blush-dark)', zIndex: 10 }}>
-          {/* Tab content */}
+          {/* Tab content — replaced by photo edit panel when a slot is selected */}
           <div style={{ minHeight: 110, maxHeight: 210, overflowY: 'auto', overflowX: 'hidden' }}>
-            {mobileTab === 'photos'  && photoTrayPanel}
-            {mobileTab === 'layout'  && layoutPanel}
-            {mobileTab === 'font'    && fontPanel}
-            {mobileTab === 'letter'  && letterPanel}
-            {mobileTab === 'to'      && recipientPanel}
+            {selectedSlot !== null && photoEditPanel
+              ? photoEditPanel
+              : <>
+                  {mobileTab === 'photos'  && photoTrayPanel}
+                  {mobileTab === 'layout'  && layoutPanel}
+                  {mobileTab === 'font'    && fontPanel}
+                  {mobileTab === 'letter'  && letterPanel}
+                  {mobileTab === 'to'      && recipientPanel}
+                </>
+            }
           </div>
 
           {/* Tab bar */}
           <div style={{ display: 'flex', borderTop: '1px solid var(--color-blush-dark)', height: 54 }}>
-            {mobileTabs.map(tab => {
-              const active = mobileTab === tab.id
-              return (
-                <button key={tab.id} onClick={() => { setMobileTab(tab.id); setSelectedTrayIdx(null) }}
-                  style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, border: 'none', backgroundColor: 'white', cursor: 'pointer', borderTop: `2px solid ${active ? 'var(--color-mauve)' : 'transparent'}` }}>
-                  {tab.icon(active)}
-                  <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.03em', color: active ? 'var(--color-mauve)' : '#9ca3af', textTransform: 'uppercase' }}>{tab.label}</span>
+            {selectedSlot !== null
+              ? (
+                /* While editing a photo, show a single "← All tools" pill to close */
+                <button
+                  onClick={() => { setSelectedSlot(null); setSwapMode(false) }}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 'none', backgroundColor: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--color-mauve)' }}>
+                  ← Back to editor
                 </button>
               )
-            })}
+              : mobileTabs.map(tab => {
+                  const active = mobileTab === tab.id
+                  return (
+                    <button key={tab.id} onClick={() => setMobileTab(tab.id)}
+                      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, border: 'none', backgroundColor: 'white', cursor: 'pointer', borderTop: `2px solid ${active ? 'var(--color-mauve)' : 'transparent'}` }}>
+                      {tab.icon(active)}
+                      <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.03em', color: active ? 'var(--color-mauve)' : '#9ca3af', textTransform: 'uppercase' }}>{tab.label}</span>
+                    </button>
+                  )
+                })
+            }
           </div>
         </div>
-
-        {/* Photo crop/pan editor modal */}
-        {editingPhotoIndex !== null && photos[editingPhotoIndex] && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', flexShrink: 0 }}>
-              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>Photo {editingPhotoIndex + 1} of {photos.length}</span>
-              <button onClick={() => setEditingPhotoIndex(null)}
-                style={{ padding: '8px 20px', borderRadius: 20, backgroundColor: 'var(--color-mauve)', color: 'white', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-                Done
-              </button>
-            </div>
-
-            <div
-              onTouchStart={handlePhotoPanTouchStart}
-              onTouchMove={handlePhotoPanTouchMove}
-              onTouchEnd={handlePhotoPanTouchEnd}
-              style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'none' }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photos[editingPhotoIndex].url}
-                alt=""
-                draggable={false}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${photos[editingPhotoIndex].x}% ${photos[editingPhotoIndex].y}%`, userSelect: 'none', display: 'block' }}
-              />
-            </div>
-
-            <div style={{ padding: '12px 16px', flexShrink: 0, textAlign: 'center' }}>
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Drag to reposition within the frame</p>
-              {/* Prev / Next photo */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 10 }}>
-                <button onClick={() => setEditingPhotoIndex(Math.max(0, editingPhotoIndex - 1))} disabled={editingPhotoIndex === 0}
-                  style={{ padding: '6px 16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'transparent', color: 'white', fontSize: 13, cursor: editingPhotoIndex === 0 ? 'default' : 'pointer', opacity: editingPhotoIndex === 0 ? 0.3 : 1 }}>← Prev</button>
-                <button onClick={() => setEditingPhotoIndex(Math.min(photos.length - 1, editingPhotoIndex + 1))} disabled={editingPhotoIndex === photos.length - 1}
-                  style={{ padding: '6px 16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'transparent', color: 'white', fontSize: 13, cursor: editingPhotoIndex === photos.length - 1 ? 'default' : 'pointer', opacity: editingPhotoIndex === photos.length - 1 ? 0.3 : 1 }}>Next →</button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {renderModals()}
       </div>
     )
   }
 
-  // ─── Desktop layout ─────────────────────────────────────────────────────────
+  // ─── Desktop layout ───────────────────────────────────────────────────────────
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--color-blush)' }}>
@@ -533,7 +644,15 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
           <PreciousPostLogo size="sm" />
           <div className="flex items-center gap-2">
             <Link href="/dashboard" className="text-sm px-3 py-2 rounded-full border transition-colors" style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal-light)', textDecoration: 'none' }}>← Dashboard</Link>
-            <button onClick={clearEditor} className="text-sm px-3 py-2 rounded-full border transition-colors" style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal-light)' }}>Start over</button>
+            {prevPhotos !== null && (
+              <button
+                onClick={() => { setPhotos(prevPhotos); setPrevPhotos(null) }}
+                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-full border transition-colors"
+                style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal-light)' }}>
+                <IconUndo /> Undo
+              </button>
+            )}
+            <button onClick={clearEditor} className="text-sm px-3 py-2 rounded-full border transition-colors" style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal-light)' }}>Clear ×</button>
             <button onClick={validateAndReview} disabled={submitting} className="px-4 py-2 rounded-full text-sm font-semibold text-white disabled:opacity-50 transition-opacity" style={{ backgroundColor: 'var(--color-mauve)' }}>
               Review & Submit →
             </button>
@@ -542,77 +661,107 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
       </nav>
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-        <div className="bg-white border-r p-5 space-y-6" style={{ width: 300, flexShrink: 0, overflowY: 'auto', borderColor: 'var(--color-blush-dark)' }}>
-          <Section title="Recipient">
-            {recipientError && <p style={{ fontSize: 12, color: '#ef4444', marginBottom: 6 }}>Please select a recipient before submitting.</p>}
-            {addresses.length === 0
-              ? <p className="text-xs mb-2" style={{ color: 'var(--color-charcoal-light)' }}>No addresses saved yet.</p>
-              : <select value={addressId} onChange={e => { setAddressId(e.target.value); setRecipientError(false) }} className="w-full px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: recipientError ? '#ef4444' : '#e5e7eb', fontSize: 14 }}>
-                  <option value="">Select recipient…</option>
-                  {addresses.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-            }
-            <button onClick={() => setShowAddAddress(!showAddAddress)} className="text-xs mt-1 underline" style={{ color: 'var(--color-mauve)' }}>+ Add new address</button>
-            {showAddAddress && <QuickAddAddress onSave={addr => { addresses.push(addr); setAddressId(addr.id); setShowAddAddress(false); setRecipientError(false) }} />}
-          </Section>
+        {/* Sidebar */}
+        <div className="bg-white border-r" style={{ width: 300, flexShrink: 0, overflowY: 'auto', borderColor: 'var(--color-blush-dark)', display: 'flex', flexDirection: 'column' }}>
 
-          {photos.length > 0 && (
-            <Section title="Layout">
-              {getLayoutsForCount(photos.length).length <= 1
-                ? <p className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>One layout available for {photos.length} photo{photos.length !== 1 ? 's' : ''}.</p>
-                : <div className="grid grid-cols-2 gap-2">
-                    {getLayoutsForCount(photos.length).map(l => (
-                      <button key={l.id} onClick={() => { setLayout(l.id); if (l.recommendedHeight) setPhotoAreaHeight(l.recommendedHeight) }} className="px-2 py-2 rounded-xl border text-xs transition-colors text-left"
-                        style={{ borderColor: layout === l.id ? 'var(--color-mauve)' : '#e5e7eb', backgroundColor: layout === l.id ? 'var(--color-blush)' : 'white', color: layout === l.id ? 'var(--color-mauve)' : 'var(--color-charcoal)' }}>
-                        {l.name}
-                      </button>
-                    ))}
-                  </div>
-              }
-            </Section>
+          {/* Photo edit panel — shown at top when a slot is selected */}
+          {selectedSlot !== null && activePhoto && (
+            <div style={{ borderBottom: '1px solid var(--color-blush-dark)', backgroundColor: 'var(--color-blush)' }}>
+              {photoEditPanel}
+            </div>
           )}
 
-          <Section title="Font style">
-            <div className="grid grid-cols-3 gap-2">
-              {(['handwritten', 'serif', 'sans'] as FontFamily[]).map(f => (
-                <button key={f} onClick={() => setFont(f)} className="py-2 px-1 rounded-xl border text-xs capitalize transition-colors"
-                  style={{ borderColor: font === f ? 'var(--color-mauve)' : '#e5e7eb', backgroundColor: font === f ? 'var(--color-blush)' : 'white', color: font === f ? 'var(--color-mauve)' : 'var(--color-charcoal)', fontFamily: f === 'handwritten' ? "'Caveat', cursive" : f === 'serif' ? "'Playfair Display', serif" : 'system-ui' }}>
-                  {f === 'handwritten' ? 'Handwritten' : f === 'serif' ? 'Serif' : 'Sans'}
-                </button>
-              ))}
-            </div>
-          </Section>
+          <div className="p-5 space-y-6" style={{ flex: 1 }}>
+            <Section title="Recipient">
+              {recipientError && <p style={{ fontSize: 12, color: '#ef4444', marginBottom: 6 }}>Please select a recipient before submitting.</p>}
+              {addresses.length === 0
+                ? <p className="text-xs mb-2" style={{ color: 'var(--color-charcoal-light)' }}>No addresses saved yet.</p>
+                : <select value={addressId} onChange={e => { setAddressId(e.target.value); setRecipientError(false) }} className="w-full px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor: recipientError ? '#ef4444' : '#e5e7eb', fontSize: 14 }}>
+                    <option value="">Select recipient…</option>
+                    {addresses.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+              }
+              <button onClick={() => setShowAddAddress(!showAddAddress)} className="text-xs mt-1 underline" style={{ color: 'var(--color-mauve)' }}>+ Add new address</button>
+              {showAddAddress && <QuickAddAddress onSave={addr => { addresses.push(addr); setAddressId(addr.id); setShowAddAddress(false); setRecipientError(false) }} />}
+            </Section>
 
-          <Section title="Font size">
-            <div className="grid grid-cols-3 gap-2">
-              {(['small', 'medium', 'large'] as FontSize[]).map(s => (
-                <button key={s} onClick={() => setFontSize(s)} className="py-2 rounded-xl border text-xs capitalize transition-colors"
-                  style={{ borderColor: fontSize === s ? 'var(--color-mauve)' : '#e5e7eb', backgroundColor: fontSize === s ? 'var(--color-blush)' : 'white', color: fontSize === s ? 'var(--color-mauve)' : 'var(--color-charcoal)' }}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </Section>
+            {photos.length > 0 && (
+              <Section title="Layout">
+                {getLayoutsForCount(photos.length).length <= 1
+                  ? <p className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>One layout available for {photos.length} photo{photos.length !== 1 ? 's' : ''}.</p>
+                  : <div className="grid grid-cols-2 gap-2">
+                      {getLayoutsForCount(photos.length).map(l => (
+                        <button key={l.id} onClick={() => { setLayout(l.id); if (l.recommendedHeight) setPhotoAreaHeight(l.recommendedHeight) }} className="px-2 py-2 rounded-xl border text-xs transition-colors text-left"
+                          style={{ borderColor: layout === l.id ? 'var(--color-mauve)' : '#e5e7eb', backgroundColor: layout === l.id ? 'var(--color-blush)' : 'white', color: layout === l.id ? 'var(--color-mauve)' : 'var(--color-charcoal)' }}>
+                          {l.name}
+                        </button>
+                      ))}
+                    </div>
+                }
+              </Section>
+            )}
 
-          <Section title={`Your letter (${letterText.length}/${MAX_CHARS})`}>
-            <textarea value={letterText} onChange={e => setLetterText(e.target.value.slice(0, MAX_CHARS))} placeholder="Write your letter here…" rows={10}
-              className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
-              style={{ borderColor: '#e5e7eb', fontFamily: font === 'handwritten' ? "'Caveat', cursive" : font === 'serif' ? "'Playfair Display', serif" : 'system-ui' }} />
-          </Section>
+            <Section title="Font style">
+              <div className="grid grid-cols-3 gap-2">
+                {(['handwritten', 'serif', 'sans'] as FontFamily[]).map(f => (
+                  <button key={f} onClick={() => setFont(f)} className="py-2 px-1 rounded-xl border text-xs capitalize transition-colors"
+                    style={{ borderColor: font === f ? 'var(--color-mauve)' : '#e5e7eb', backgroundColor: font === f ? 'var(--color-blush)' : 'white', color: font === f ? 'var(--color-mauve)' : 'var(--color-charcoal)', fontFamily: f === 'handwritten' ? "'Caveat', cursive" : f === 'serif' ? "'Playfair Display', serif" : 'system-ui' }}>
+                    {f === 'handwritten' ? 'Handwritten' : f === 'serif' ? 'Serif' : 'Sans'}
+                  </button>
+                ))}
+              </div>
+            </Section>
+
+            <Section title="Font size">
+              <div className="grid grid-cols-3 gap-2">
+                {(['small', 'medium', 'large'] as FontSize[]).map(s => (
+                  <button key={s} onClick={() => setFontSize(s)} className="py-2 rounded-xl border text-xs capitalize transition-colors"
+                    style={{ borderColor: fontSize === s ? 'var(--color-mauve)' : '#e5e7eb', backgroundColor: fontSize === s ? 'var(--color-blush)' : 'white', color: fontSize === s ? 'var(--color-mauve)' : 'var(--color-charcoal)' }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </Section>
+
+            <Section title={`Your letter (${letterText.length}/${MAX_CHARS})`}>
+              <textarea value={letterText} onChange={e => setLetterText(e.target.value.slice(0, MAX_CHARS))} placeholder="Write your letter here…" rows={10}
+                className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
+                style={{ borderColor: '#e5e7eb', fontFamily: font === 'handwritten' ? "'Caveat', cursive" : font === 'serif' ? "'Playfair Display', serif" : 'system-ui' }} />
+            </Section>
+          </div>
         </div>
 
         {/* Preview + tray */}
-        <div {...getRootProps()} style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
+        <div
+          {...getRootProps()}
+          style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}
+          onClick={() => { if (selectedSlot !== null) { setSelectedSlot(null); setSwapMode(false) } }}>
           <input {...getInputProps()} />
           {isDragActive && (
             <div style={{ position: 'absolute', inset: 0, zIndex: 40, backgroundColor: 'rgba(176,128,144,0.18)', border: '3px dashed var(--color-mauve)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
               <p style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-mauve)' }}>Drop photos here</p>
             </div>
           )}
-          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 24px 12px' }}>
-            <p className="text-xs mb-3 font-medium shrink-0" style={{ color: 'var(--color-charcoal-light)' }}>Live preview — 8.5 × 11&quot; letter</p>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 24px 12px' }}>
+            <p className="text-xs mb-3 font-medium shrink-0" style={{ color: 'var(--color-charcoal-light)' }}>
+              Live preview — 8.5 × 11&quot; letter
+              {selectedSlot !== null && <span style={{ color: 'var(--color-mauve)', marginLeft: 8 }}>Drag to pan · click elsewhere to deselect</span>}
+            </p>
             <div style={{ width: 816 * PREVIEW_SCALE, height: 1056 * PREVIEW_SCALE, boxShadow: '0 4px 32px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
-              <LetterPreview ref={previewRef} layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100} font={font} fontSize={fontSize} letterText={letterText} senderName={profile.name} address={selectedAddress} scale={PREVIEW_SCALE} onPanPhoto={panPhoto} onResizePhotoArea={isSideBySide ? undefined : setPhotoAreaHeight} onSlotClick={handleSlotClick} />
+              <LetterPreview
+                ref={previewRef}
+                layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100}
+                font={font} fontSize={fontSize} letterText={letterText}
+                senderName={profile.name} address={selectedAddress} scale={PREVIEW_SCALE}
+                onPanPhoto={panPhoto}
+                onResizePhotoArea={isSideBySide ? undefined : setPhotoAreaHeight}
+                onSlotClick={handleSlotClick}
+                onPhotoTap={handlePhotoTap}
+                selectedSlot={selectedSlot}
+                swapMode={swapMode}
+              />
             </div>
           </div>
 
@@ -620,7 +769,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
           <div style={{ flexShrink: 0, backgroundColor: 'white', borderTop: '1px solid var(--color-blush-dark)' }}>
             {pendingSlot !== null && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 16px', backgroundColor: 'var(--color-blush)', borderBottom: '1px solid var(--color-blush-dark)' }}>
-                <p style={{ fontSize: 12, color: 'var(--color-mauve)', fontWeight: 600 }}>Placing photo in slot {pendingSlot + 1} — tap a photo below to move it, or upload a new one</p>
+                <p style={{ fontSize: 12, color: 'var(--color-mauve)', fontWeight: 600 }}>Placing photo in slot {pendingSlot + 1} — upload new or drag to reorder</p>
                 <button onClick={() => updatePendingSlot(null)} style={{ fontSize: 11, color: 'var(--color-charcoal-light)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}>Cancel ×</button>
               </div>
             )}
@@ -631,21 +780,20 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
                   : <><span style={{ fontSize: 22, color: 'var(--color-mauve)', lineHeight: 1, fontWeight: 300 }}>+</span><span style={{ fontSize: 9, color: 'var(--color-charcoal-light)', fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase' }}>{photos.length === 0 ? 'Add photos' : 'Add more'}</span></>}
               </button>
               {photos.length > 0 && <div style={{ width: 1, height: 56, backgroundColor: 'var(--color-blush-dark)', flexShrink: 0 }} />}
-              {photos.map((photo, i) => {
-                const isTarget = pendingSlot !== null && i !== pendingSlot
-                return (
-                  <div key={photo.id} draggable onDragStart={() => handleDragStart(i)} onDragEnter={() => handleDragEnter(i)} onDragEnd={handleDragEnd} onDragOver={e => e.preventDefault()} onClick={isTarget ? () => assignTrayPhotoToSlot(i) : undefined}
-                    style={{ flexShrink: 0, position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: dragOverIndex === i ? '2.5px solid var(--color-mauve)' : isTarget ? '2.5px solid #b08090' : '2px solid var(--color-blush-dark)', opacity: dragIndexRef.current === i ? 0.4 : 1, cursor: isTarget ? 'pointer' : 'grab' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photo.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${photo.x}% ${photo.y}%`, userSelect: 'none', display: 'block' }} />
-                    <div style={{ position: 'absolute', top: 3, left: 3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--color-mauve)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', padding: '0 3px' }}>{i + 1}</div>
-                    <button onClick={e => { e.stopPropagation(); removePhoto(photo.id) }} style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
-                    {isTarget && <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(176,128,144,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 18, color: 'white' }}>↩</span></div>}
-                  </div>
-                )
-              })}
-              {photos.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', paddingLeft: 4 }}>Add photos, or tap an empty slot on the preview above</p>}
-              {photos.length >= 2 && <><div style={{ flex: 1, minWidth: 8 }} /><button onClick={autofill} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 20, border: '1px solid var(--color-blush-dark)', backgroundColor: 'var(--color-blush)', fontSize: 11, fontWeight: 600, color: 'var(--color-mauve)', cursor: 'pointer', whiteSpace: 'nowrap' }}>↺ Autofill</button></>}
+              {photos.map((photo, i) => (
+                <div key={photo.id} draggable onDragStart={() => handleDragStart(i)} onDragEnter={() => handleDragEnter(i)} onDragEnd={handleDragEnd} onDragOver={e => e.preventDefault()}
+                  style={{ flexShrink: 0, position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: dragOverIndex === i ? '2.5px solid var(--color-mauve)' : '2px solid var(--color-blush-dark)', opacity: dragIndexRef.current === i ? 0.4 : 1, cursor: 'grab' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${photo.x}% ${photo.y}%`, userSelect: 'none', display: 'block', transform: photo.zoom && photo.zoom !== 1 ? `scale(${photo.zoom})` : undefined, transformOrigin: `${photo.x}% ${photo.y}%` }} />
+                  <div style={{ position: 'absolute', top: 3, left: 3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--color-mauve)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', padding: '0 3px' }}>{i + 1}</div>
+                  <button onClick={e => { e.stopPropagation(); removePhoto(photo.id) }} style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
+                </div>
+              ))}
+              {photos.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', paddingLeft: 4 }}>Add photos, or click an empty slot on the preview above</p>}
+              {photos.length >= 2 && (
+                <><div style={{ flex: 1, minWidth: 8 }} />
+                <button onClick={autofill} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 20, border: '1px solid var(--color-blush-dark)', backgroundColor: 'var(--color-blush)', fontSize: 11, fontWeight: 600, color: 'var(--color-mauve)', cursor: 'pointer', whiteSpace: 'nowrap' }}>↺ Autofill</button></>
+              )}
             </div>
           </div>
         </div>
@@ -655,7 +803,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     </div>
   )
 
-  // ─── Modals ─────────────────────────────────────────────────────────────────
+  // ─── Modals ───────────────────────────────────────────────────────────────────
 
   function renderModals() {
     return (
@@ -718,6 +866,8 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     )
   }
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
