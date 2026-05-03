@@ -21,6 +21,8 @@ interface Props {
   onResizePhotoArea?: (heightPct: number) => void
   /** Pre-cropped photo data URLs for PDF rendering (bypasses object-fit limitation in html2canvas) */
   photoCroppedUrls?: string[]
+  /** Called when user taps an empty photo slot — passes the slot index */
+  onSlotClick?: (slotIndex: number) => void
 }
 
 const PAGE_W = 816
@@ -28,7 +30,7 @@ const PAGE_H = 1056
 const PADDING = 40
 
 export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPreview(
-  { layout, photos, photoAreaHeight, font, fontSize, letterText, senderName, scale = 1, onPanPhoto, onResizePhotoArea, photoCroppedUrls },
+  { layout, photos, photoAreaHeight, font, fontSize, letterText, senderName, scale = 1, onPanPhoto, onResizePhotoArea, photoCroppedUrls, onSlotClick },
   ref
 ) {
   const layoutDef = getLayout(layout)
@@ -144,7 +146,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
               flexShrink: 0,
             }}
           >
-            <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} />
+            <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} />
             {resizeHandle}
           </div>
 
@@ -190,7 +192,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
             </div>
           )}
           <div style={{ width: `${photoWidthPct}%`, flexShrink: 0, position: 'relative' }}>
-            {layoutDef && <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} />}
+            {layoutDef && <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} />}
           </div>
           {layoutDef?.textPosition === 'right' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
@@ -211,7 +213,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
         <>
           {photos.length > 0 && layoutDef && (
             <div style={{ width: '100%', height: photoAreaPx, flexShrink: 0, position: 'relative' }}>
-              <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} />
+              <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} onSlotClick={onSlotClick} />
               {resizeHandle}
             </div>
           )}
@@ -275,13 +277,15 @@ function PhotoGrid({
   photos,
   croppedUrls,
   onPan,
+  onSlotClick,
 }: {
   slots: SlotDef[]
   photos: PhotoItem[]
   croppedUrls?: string[]
   onPan?: (index: number, x: number, y: number) => void
+  onSlotClick?: (slotIndex: number) => void
 }) {
-  const [activeSlot, setActiveSlot] = useState<number | null>(null)
+  const [panningSlot, setPanningSlot] = useState<number | null>(null)
 
   function handleMouseDown(e: React.MouseEvent, i: number) {
     if (!onPan || !photos[i]) return
@@ -295,7 +299,7 @@ function PhotoGrid({
     const slotEl = e.currentTarget as HTMLElement
     const rect = slotEl.getBoundingClientRect()
 
-    setActiveSlot(i)
+    setPanningSlot(i)
 
     function onMouseMove(ev: MouseEvent) {
       const dx = ev.clientX - startMouseX
@@ -306,7 +310,7 @@ function PhotoGrid({
     }
 
     function onMouseUp() {
-      setActiveSlot(null)
+      setPanningSlot(null)
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', onMouseUp)
     }
@@ -319,11 +323,15 @@ function PhotoGrid({
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {slots.map((slot, i) => {
         const photo = photos[i]
-        const isActive = activeSlot === i
+        const isPanning = panningSlot === i
+        const isEmpty = !photo
+        const isClickable = isEmpty && !!onSlotClick
+
         return (
           <div
             key={i}
             onMouseDown={e => handleMouseDown(e, i)}
+            onClick={isClickable ? () => onSlotClick!(i) : undefined}
             style={{
               position: 'absolute',
               left: `${slot.left}%`,
@@ -333,14 +341,13 @@ function PhotoGrid({
               backgroundColor: '#F9EDE8',
               borderRadius: 6,
               overflow: 'hidden',
-              cursor: onPan && photo ? (isActive ? 'grabbing' : 'grab') : 'default',
-              outline: isActive ? '3px solid #b08090' : 'none',
+              cursor: isClickable ? 'pointer' : onPan && photo ? (isPanning ? 'grabbing' : 'grab') : 'default',
+              outline: isPanning ? '3px solid #b08090' : 'none',
               outlineOffset: '-3px',
             }}
           >
             {photo ? (
               croppedUrls?.[i] ? (
-                // Pre-cropped for PDF: image is already the right crop, just fill the slot.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={croppedUrls[i]}
@@ -349,7 +356,6 @@ function PhotoGrid({
                   style={{ width: '100%', height: '100%', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
                 />
               ) : (
-                // Browser preview: use object-fit cover for smooth panning.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={photo.url}
@@ -367,8 +373,36 @@ function PhotoGrid({
                 />
               )
             ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 18, opacity: 0.25 }}>📷</span>
+              /* Empty slot — shows a tap-to-add indicator when onSlotClick is wired up */
+              <div style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                opacity: isClickable ? 1 : 0.3,
+                transition: 'opacity 0.15s',
+              }}>
+                <div style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  backgroundColor: isClickable ? 'var(--color-mauve)' : '#ccc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: 18,
+                  fontWeight: 300,
+                  lineHeight: 1,
+                }}>+</div>
+                {isClickable && (
+                  <span style={{ fontSize: 9, color: '#A07872', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    Add photo
+                  </span>
+                )}
               </div>
             )}
           </div>

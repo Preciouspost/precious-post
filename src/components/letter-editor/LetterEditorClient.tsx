@@ -22,7 +22,7 @@ interface Props {
 const MAX_PHOTOS = 8
 const MAX_CHARS = 2500
 const PREVIEW_SCALE = 0.48
-const DRAFT_KEY = 'precious-post-draft'
+const draftKey = (userId: string) => `precious-post-draft-${userId}`
 
 export function LetterEditorClient({ profile, addresses, monthYear, usedCount, maxLetters }: Props) {
   const router = useRouter()
@@ -30,7 +30,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
 
   // Load draft from localStorage on first render
   const savedDraft = typeof window !== 'undefined'
-    ? (() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') } catch { return null } })()
+    ? (() => { try { return JSON.parse(localStorage.getItem(draftKey(profile.user_id)) ?? 'null') } catch { return null } })()
     : null
 
   const [photos, setPhotos] = useState<PhotoItem[]>(savedDraft?.photos ?? [])
@@ -50,10 +50,19 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const dragIndexRef = useRef<number | null>(null)
 
+  // Which preview slot is waiting for a photo assignment (null = normal mode)
+  const [pendingSlot, setPendingSlot] = useState<number | null>(null)
+  // Keep a ref so onDrop closure can read the latest value without stale capture
+  const pendingSlotRef = useRef<number | null>(null)
+  function updatePendingSlot(slot: number | null) {
+    setPendingSlot(slot)
+    pendingSlotRef.current = slot
+  }
+
   // Auto-save draft to localStorage whenever state changes
   useEffect(() => {
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ photos, layout, photoAreaHeight, font, fontSize, letterText, addressId }))
+      localStorage.setItem(draftKey(profile.user_id), JSON.stringify({ photos, layout, photoAreaHeight, font, fontSize, letterText, addressId }))
     } catch {}
   }, [photos, layout, photoAreaHeight, font, fontSize, letterText, addressId])
 
@@ -65,6 +74,8 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     const remaining = MAX_PHOTOS - photos.length
     const files = acceptedFiles.slice(0, remaining)
     if (!files.length) return
+
+    const targetSlot = pendingSlotRef.current
 
     setUploadingPhotos(true)
     const supabase = createClient()
@@ -81,8 +92,16 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         newPhotos.push({ id: path, url: publicUrl, x: 50, y: 50, width: 100, height: 100 })
       }
     }
+
     setPhotos(prev => {
-      const next = [...prev, ...newPhotos]
+      let next = [...prev, ...newPhotos]
+      // If a specific slot was pending and we uploaded exactly one photo,
+      // move it to that slot position so it fills the intended slot.
+      if (targetSlot !== null && newPhotos.length === 1) {
+        const inserted = next.pop()!
+        const idx = Math.min(targetSlot, next.length)
+        next.splice(idx, 0, inserted)
+      }
       const def = getDefaultLayout(next.length)
       if (def) {
         setLayout(def.id)
@@ -90,14 +109,17 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
       }
       return next
     })
+
+    updatePendingSlot(null)
     setUploadingPhotos(false)
   }, [photos.length])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: { 'image/*': [] },
     maxFiles: MAX_PHOTOS,
     disabled: photos.length >= MAX_PHOTOS || uploadingPhotos,
+    noClick: true, // we control click manually via open()
   })
 
   function removePhoto(id: string) {
@@ -116,7 +138,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     setPhotos(prev => prev.map((p, i) => i === index ? { ...p, x, y } : p))
   }
 
-  // Drag-to-reorder handlers
+  // Drag-to-reorder handlers (used in photo tray)
   function handleDragStart(index: number) {
     dragIndexRef.current = index
   }
@@ -138,6 +160,38 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     }
     dragIndexRef.current = null
     setDragOverIndex(null)
+  }
+
+  // Called when user taps an empty photo slot in the preview
+  function handleSlotClick(slotIndex: number) {
+    updatePendingSlot(slotIndex)
+    // Open file picker immediately — user can upload a new photo for this slot
+    open()
+  }
+
+  // Called when user taps a tray photo while a slot is pending —
+  // moves that photo to the pending slot position.
+  function assignTrayPhotoToSlot(trayIndex: number) {
+    if (pendingSlot === null) return
+    setPhotos(prev => {
+      const next = [...prev]
+      const [photo] = next.splice(trayIndex, 1)
+      const target = Math.min(pendingSlot, next.length)
+      next.splice(target, 0, photo)
+      return next
+    })
+    updatePendingSlot(null)
+  }
+
+  // Autofill: resets photos to their natural upload order (slot 0 = first uploaded, etc.)
+  // Most useful after manual reordering — one tap to restore sequential assignment.
+  function autofill() {
+    setPhotos(prev => [...prev].sort((a, b) => {
+      // Photos have IDs that include a timestamp — sort by that
+      const tsA = parseInt(a.id.split('/')[1]?.split('-')[0] ?? '0', 10)
+      const tsB = parseInt(b.id.split('/')[1]?.split('-')[0] ?? '0', 10)
+      return tsA - tsB
+    }))
   }
 
   async function handleSubmit() {
@@ -174,7 +228,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     })
 
     // Clear the saved draft on successful submission
-    try { localStorage.removeItem(DRAFT_KEY) } catch {}
+    try { localStorage.removeItem(draftKey(profile.user_id)) } catch {}
 
     const newCount = submittedCount + 1
     setSubmittedCount(newCount)
@@ -196,7 +250,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
 
   function clearEditor() {
     if (!confirm('Clear everything and start fresh?')) return
-    try { localStorage.removeItem(DRAFT_KEY) } catch {}
+    try { localStorage.removeItem(draftKey(profile.user_id)) } catch {}
     setPhotos([])
     setLetterText('')
     setAddressId('')
@@ -216,6 +270,13 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
           <PreciousPostLogo size="sm" />
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>← Dashboard</Link>
+            <button
+              onClick={clearEditor}
+              className="text-sm px-4 py-2 rounded-full border transition-colors"
+              style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal-light)' }}
+            >
+              Start over
+            </button>
             <button
               onClick={() => setAddressId('')}
               className="text-sm px-4 py-2 rounded-full border transition-colors"
@@ -246,7 +307,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         <div
           className="bg-white border-r p-5 space-y-6"
           style={{
-            width: 320,
+            width: 300,
             flexShrink: 0,
             overflowY: 'auto',
             borderColor: 'var(--color-blush-dark)',
@@ -282,59 +343,6 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
                 setAddressId(addr.id)
                 setShowAddAddress(false)
               }} />
-            )}
-          </Section>
-
-
-          {/* Photos */}
-          <Section title={`Photos (${photos.length}/${MAX_PHOTOS})`}>
-            <div
-              {...getRootProps()}
-              className="border-2 border-dashed rounded-xl p-4 text-center text-sm cursor-pointer transition-colors"
-              style={{
-                borderColor: isDragActive ? 'var(--color-mauve)' : '#e5e7eb',
-                backgroundColor: isDragActive ? 'var(--color-blush)' : 'transparent',
-                color: 'var(--color-charcoal-light)',
-              }}
-            >
-              <input {...getInputProps()} />
-              {uploadingPhotos ? 'Uploading…' : isDragActive ? 'Drop here!' : 'Drop photos or click to upload'}
-            </div>
-
-            {photos.length > 0 && (
-              <div className="space-y-2 mt-3">
-                <p className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>
-                  Drag here to reorder · Drag in preview to reposition
-                </p>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {photos.map((photo, i) => (
-                    <div
-                      key={photo.id}
-                      draggable
-                      onDragStart={() => handleDragStart(i)}
-                      onDragEnter={() => handleDragEnter(i)}
-                      onDragEnd={handleDragEnd}
-                      onDragOver={e => e.preventDefault()}
-                      className="relative rounded-lg overflow-hidden cursor-grab active:cursor-grabbing transition-all"
-                      style={{
-                        aspectRatio: '1',
-                        border: dragOverIndex === i ? '2px solid var(--color-mauve)' : '2px solid transparent',
-                        opacity: dragIndexRef.current === i ? 0.4 : 1,
-                      }}
-                    >
-                      <div className="absolute top-0.5 left-0.5 bg-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shadow-sm z-10" style={{ color: 'var(--color-mauve)', fontSize: 9 }}>
-                        {i + 1}
-                      </div>
-                      <img src={photo.url} alt="" className="w-full h-full object-cover" style={{ objectPosition: `${photo.x}% ${photo.y}%` }} />
-                      <button
-                        onClick={() => removePhoto(photo.id)}
-                        className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center z-10"
-                        style={{ fontSize: 10 }}
-                      >×</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
             )}
           </Section>
 
@@ -420,46 +428,287 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
           </Section>
         </div>
 
-        {/* RIGHT: preview — never scrolls, always visible */}
+        {/* RIGHT: preview + photo tray stacked */}
         <div
           style={{
             flex: 1,
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 24,
+            minWidth: 0,
           }}
+          // Allow drop anywhere on the right panel
+          {...getRootProps()}
         >
-          <p className="text-xs mb-4 font-medium shrink-0" style={{ color: 'var(--color-charcoal-light)' }}>
-            Live preview — 8.5 × 11&quot; letter
-          </p>
+          {/* Hidden file input — always mounted so open() works */}
+          <input {...getInputProps()} />
+
+          {/* Drop overlay */}
+          {isDragActive && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 40,
+              backgroundColor: 'rgba(176,128,144,0.18)',
+              border: '3px dashed var(--color-mauve)',
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+            }}>
+              <p style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-mauve)' }}>Drop photos here</p>
+            </div>
+          )}
+
+          {/* Preview area — fills remaining space */}
           <div
             style={{
-              width: 816 * PREVIEW_SCALE,
-              height: 1056 * PREVIEW_SCALE,
-              boxShadow: '0 4px 32px rgba(0,0,0,0.12)',
-              borderRadius: 4,
+              flex: 1,
               overflow: 'hidden',
-              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px 24px 12px',
             }}
           >
-            <LetterPreview
-              ref={previewRef}
-              layout={layout}
-              photos={photos}
-              photoAreaHeight={photoAreaHeight}
-              photoAreaWidth={100}
-              font={font}
-              fontSize={fontSize}
-              letterText={letterText}
-              senderName={profile.name}
-              address={selectedAddress}
-              scale={PREVIEW_SCALE}
-              onPanPhoto={panPhoto}
-              onResizePhotoArea={isSideBySide ? undefined : setPhotoAreaHeight}
-            />
+            <p className="text-xs mb-3 font-medium shrink-0" style={{ color: 'var(--color-charcoal-light)' }}>
+              Live preview — 8.5 × 11&quot; letter
+            </p>
+            <div
+              style={{
+                width: 816 * PREVIEW_SCALE,
+                height: 1056 * PREVIEW_SCALE,
+                boxShadow: '0 4px 32px rgba(0,0,0,0.12)',
+                borderRadius: 4,
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}
+            >
+              <LetterPreview
+                ref={previewRef}
+                layout={layout}
+                photos={photos}
+                photoAreaHeight={photoAreaHeight}
+                photoAreaWidth={100}
+                font={font}
+                fontSize={fontSize}
+                letterText={letterText}
+                senderName={profile.name}
+                address={selectedAddress}
+                scale={PREVIEW_SCALE}
+                onPanPhoto={panPhoto}
+                onResizePhotoArea={isSideBySide ? undefined : setPhotoAreaHeight}
+                onSlotClick={handleSlotClick}
+              />
+            </div>
+          </div>
+
+          {/* ── Photo Tray ── */}
+          <div
+            style={{
+              flexShrink: 0,
+              backgroundColor: 'white',
+              borderTop: '1px solid var(--color-blush-dark)',
+            }}
+          >
+            {/* Pending-slot banner */}
+            {pendingSlot !== null && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '6px 16px',
+                backgroundColor: 'var(--color-blush)',
+                borderBottom: '1px solid var(--color-blush-dark)',
+              }}>
+                <p style={{ fontSize: 12, color: 'var(--color-mauve)', fontWeight: 600 }}>
+                  📍 Adding photo for slot {pendingSlot + 1} — tap a photo below to move it here, or upload a new one
+                </p>
+                <button
+                  onClick={() => updatePendingSlot(null)}
+                  style={{ fontSize: 11, color: 'var(--color-charcoal-light)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                >
+                  Cancel ×
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', overflowX: 'auto' }}>
+
+              {/* Upload / Add button */}
+              <button
+                onClick={() => open()}
+                disabled={photos.length >= MAX_PHOTOS || uploadingPhotos}
+                title="Add photos"
+                style={{
+                  flexShrink: 0,
+                  width: 72,
+                  height: 72,
+                  borderRadius: 10,
+                  border: '2px dashed var(--color-blush-dark)',
+                  backgroundColor: 'var(--color-blush)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 2,
+                  cursor: photos.length >= MAX_PHOTOS ? 'not-allowed' : 'pointer',
+                  opacity: photos.length >= MAX_PHOTOS ? 0.4 : 1,
+                  transition: 'opacity 0.15s',
+                }}
+              >
+                {uploadingPhotos ? (
+                  <span style={{ fontSize: 10, color: 'var(--color-charcoal-light)' }}>…</span>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 22, color: 'var(--color-mauve)', lineHeight: 1, fontWeight: 300 }}>+</span>
+                    <span style={{ fontSize: 9, color: 'var(--color-charcoal-light)', fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                      {photos.length === 0 ? 'Add photos' : 'Add more'}
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {/* Divider */}
+              {photos.length > 0 && (
+                <div style={{ width: 1, height: 56, backgroundColor: 'var(--color-blush-dark)', flexShrink: 0 }} />
+              )}
+
+              {/* Photo thumbnails */}
+              {photos.map((photo, i) => {
+                const isTarget = pendingSlot !== null && i !== pendingSlot
+                const isDragOver = dragOverIndex === i
+
+                return (
+                  <div
+                    key={photo.id}
+                    draggable
+                    onDragStart={() => handleDragStart(i)}
+                    onDragEnter={() => handleDragEnter(i)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={e => e.preventDefault()}
+                    onClick={isTarget ? () => assignTrayPhotoToSlot(i) : undefined}
+                    title={pendingSlot !== null ? `Place this photo in slot ${pendingSlot + 1}` : `Photo ${i + 1} — drag to reorder`}
+                    style={{
+                      flexShrink: 0,
+                      position: 'relative',
+                      width: 72,
+                      height: 72,
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      border: isDragOver
+                        ? '2.5px solid var(--color-mauve)'
+                        : isTarget
+                        ? '2.5px solid #b08090'
+                        : '2px solid var(--color-blush-dark)',
+                      opacity: dragIndexRef.current === i ? 0.4 : 1,
+                      cursor: isTarget ? 'pointer' : pendingSlot !== null ? 'default' : 'grab',
+                      transition: 'border-color 0.15s, opacity 0.15s',
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.url}
+                      alt=""
+                      draggable={false}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${photo.x}% ${photo.y}%`, userSelect: 'none', display: 'block' }}
+                    />
+
+                    {/* Slot number badge */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 3,
+                      left: 3,
+                      minWidth: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      backgroundColor: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: 'var(--color-mauve)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      padding: '0 3px',
+                    }}>
+                      {i + 1}
+                    </div>
+
+                    {/* Remove button */}
+                    <button
+                      onClick={e => { e.stopPropagation(); removePhoto(photo.id) }}
+                      style={{
+                        position: 'absolute',
+                        top: 3,
+                        right: 3,
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(0,0,0,0.55)',
+                        color: 'white',
+                        border: 'none',
+                        fontSize: 10,
+                        lineHeight: 1,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                      }}
+                    >×</button>
+
+                    {/* "Move here" overlay for pending-slot reassignment */}
+                    {isTarget && (
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: 'rgba(176,128,144,0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <span style={{ fontSize: 18, color: 'white', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}>↩</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Spacer + Autofill button — only when 2+ photos */}
+              {photos.length >= 2 && (
+                <>
+                  <div style={{ flex: 1, minWidth: 8 }} />
+                  <button
+                    onClick={autofill}
+                    style={{
+                      flexShrink: 0,
+                      padding: '6px 12px',
+                      borderRadius: 20,
+                      border: '1px solid var(--color-blush-dark)',
+                      backgroundColor: 'var(--color-blush)',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: 'var(--color-mauve)',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title="Reset photos to their original upload order"
+                  >
+                    ↺ Autofill
+                  </button>
+                </>
+              )}
+
+              {/* Hint when empty */}
+              {photos.length === 0 && (
+                <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', paddingLeft: 4 }}>
+                  Add photos, or tap an empty slot on the preview above
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
