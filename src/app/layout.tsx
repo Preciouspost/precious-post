@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   description: 'Send handcrafted photo letters to the people you love, every month.',
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} ${caveat.variable} h-full antialiased`}>
