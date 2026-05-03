@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { PreciousPostLogo } from './Logo'
+import { createClient } from '@/lib/supabase/client'
 
 const links = [
   { href: '/', label: 'Home' },
@@ -14,7 +15,25 @@ const links = [
 
 export function MarketingNav() {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [loggedIn, setLoggedIn] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setLoggedIn(!!data.user))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }
 
   return (
     <nav className="w-full bg-white border-b" style={{ borderColor: 'var(--color-blush-dark)' }}>
@@ -35,23 +54,45 @@ export function MarketingNav() {
               {l.label}
             </Link>
           ))}
+          {loggedIn && (
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium transition-colors"
+              style={{ color: pathname === '/dashboard' ? 'var(--color-mauve)' : 'var(--color-charcoal-light)' }}
+            >
+              Dashboard
+            </Link>
+          )}
         </div>
 
+        {/* Desktop auth buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/login"
-            className="px-4 py-2 text-sm font-medium rounded-full border transition-colors"
-            style={{ borderColor: 'var(--color-mauve)', color: 'var(--color-mauve)' }}
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-2 text-sm font-medium rounded-full text-white"
-            style={{ backgroundColor: 'var(--color-mauve)' }}
-          >
-            Get Started
-          </Link>
+          {loggedIn ? (
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm font-medium rounded-full border transition-colors"
+              style={{ borderColor: 'var(--color-mauve)', color: 'var(--color-mauve)' }}
+            >
+              Log out
+            </button>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-4 py-2 text-sm font-medium rounded-full border transition-colors"
+                style={{ borderColor: 'var(--color-mauve)', color: 'var(--color-mauve)' }}
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="px-4 py-2 text-sm font-medium rounded-full text-white"
+                style={{ backgroundColor: 'var(--color-mauve)' }}
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -86,13 +127,35 @@ export function MarketingNav() {
               {l.label}
             </Link>
           ))}
+          {loggedIn && (
+            <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="block text-sm font-medium py-1"
+              style={{ color: 'var(--color-charcoal)' }}
+            >
+              Dashboard
+            </Link>
+          )}
           <div className="flex gap-2 pt-2">
-            <Link href="/login" onClick={() => setOpen(false)} className="flex-1 text-center px-4 py-2 text-sm font-medium rounded-full border" style={{ borderColor: 'var(--color-mauve)', color: 'var(--color-mauve)' }}>
-              Log in
-            </Link>
-            <Link href="/signup" onClick={() => setOpen(false)} className="flex-1 text-center px-4 py-2 text-sm font-medium rounded-full text-white" style={{ backgroundColor: 'var(--color-mauve)' }}>
-              Get Started
-            </Link>
+            {loggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="flex-1 text-center px-4 py-2 text-sm font-medium rounded-full border"
+                style={{ borderColor: 'var(--color-mauve)', color: 'var(--color-mauve)' }}
+              >
+                Log out
+              </button>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setOpen(false)} className="flex-1 text-center px-4 py-2 text-sm font-medium rounded-full border" style={{ borderColor: 'var(--color-mauve)', color: 'var(--color-mauve)' }}>
+                  Log in
+                </Link>
+                <Link href="/signup" onClick={() => setOpen(false)} className="flex-1 text-center px-4 py-2 text-sm font-medium rounded-full text-white" style={{ backgroundColor: 'var(--color-mauve)' }}>
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

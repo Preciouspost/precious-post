@@ -1,8 +1,17 @@
 import Link from 'next/link'
 import { MarketingNav } from '@/components/MarketingNav'
 import { MarketingFooter } from '@/components/MarketingFooter'
+import { createClient } from '@/lib/supabase/server'
+import { PlanCardClient } from '@/components/PlanCardClient'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  let userPlan: string | null = null
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('plan').eq('user_id', user.id).single()
+    userPlan = profile?.plan ?? null
+  }
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'white' }}>
       <MarketingNav />
@@ -40,22 +49,26 @@ export default function HomePage() {
       <section className="py-20 px-6 bg-white">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
-            Simple, honest pricing
+            Precious Plans
           </h2>
-          <p className="text-center mb-12 text-sm" style={{ color: 'var(--color-charcoal-light)' }}>Cancel anytime. No hidden fees.</p>
+          <p className="text-center mb-12 text-sm" style={{ color: 'var(--color-charcoal-light)' }}>The gift that arrives every month.</p>
           <div className="grid sm:grid-cols-2 gap-6">
-            <PlanCard
+            <PlanCardClient
               name="Single Post"
+              planKey="single"
               price="$12.95"
               description="Perfect for staying connected with one special person."
-              features={['1 letter per month', '1 recipient', 'Up to 6 photos', 'Printed & mailed for you']}
+              features={['1 letter per month', '1 recipient', 'Up to 8 photos', 'Printed & mailed for you', 'Monthly reminder text', 'No obligations, cancel anytime']}
+              userPlan={userPlan}
             />
-            <PlanCard
+            <PlanCardClient
               name="Triple Post"
+              planKey="triple"
               price="$32"
               featured
               description="Spread the love to everyone who matters most."
-              features={['3 letters per month', 'Up to 3 recipients', 'Up to 6 photos each', 'Printed & mailed for you']}
+              features={['3 letters per month', 'Up to 3 recipients', 'Up to 8 photos each', 'Printed & mailed for you', 'Monthly reminder text', 'No obligations, cancel anytime']}
+              userPlan={userPlan}
             />
           </div>
         </div>
@@ -69,6 +82,14 @@ export default function HomePage() {
             <em>I took the time for you.</em>&rdquo;
           </p>
           <p className="mt-6 text-sm" style={{ color: 'var(--color-charcoal-light)' }}>— Lauren, founder of Precious Post</p>
+          <div className="mt-10 rounded-2xl overflow-hidden mx-auto" style={{ maxWidth: 520, height: 380 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/mimi-table.jpg"
+              alt="Mimi"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%', display: 'block' }}
+            />
+          </div>
         </div>
       </section>
 
@@ -80,9 +101,9 @@ export default function HomePage() {
           </h2>
           <div className="grid sm:grid-cols-3 gap-10 text-center">
             {[
-              { step: '1', icon: '📸', title: 'Design your letter', desc: 'Upload photos, pick a layout, and write your message in minutes.' },
-              { step: '2', icon: '🖨️', title: 'We print & mail it', desc: 'Lauren personally prints on 8.5×11 and mails it within 2 business days.' },
-              { step: '3', icon: '💌', title: 'They receive it', desc: 'Your loved one gets a real, tangible piece of you in their mailbox.' },
+              { step: '1', icon: '📸', title: 'Design Your Letter', desc: 'Upload photos, pick a layout, and write your message in minutes.' },
+              { step: '2', icon: '🖨️', title: 'We Print & Mail It', desc: 'We personally print on 8.5×11 and mail it to your recipient.' },
+              { step: '3', icon: '💌', title: 'They Receive It', desc: 'Your loved one gets a real, tangible piece of you in their mailbox.' },
             ].map(item => (
               <div key={item.step} className="flex flex-col items-center gap-3">
                 <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ backgroundColor: 'var(--color-blush)' }}>
@@ -123,38 +144,3 @@ export default function HomePage() {
   )
 }
 
-function PlanCard({ name, price, description, features, featured }: {
-  name: string; price: string; description: string; features: string[]; featured?: boolean
-}) {
-  return (
-    <div
-      className="rounded-2xl p-6 border"
-      style={{
-        backgroundColor: featured ? 'var(--color-mauve)' : 'white',
-        borderColor: featured ? 'var(--color-mauve)' : 'var(--color-blush-dark)',
-        color: featured ? 'white' : 'var(--color-charcoal)',
-      }}
-    >
-      <p className="text-sm font-medium mb-1 opacity-80">{name}</p>
-      <p className="text-4xl font-bold mb-1">{price}<span className="text-base font-normal opacity-60">/mo</span></p>
-      <p className="text-sm mb-5 opacity-70">{description}</p>
-      <ul className="space-y-2 text-sm mb-6">
-        {features.map(f => (
-          <li key={f} className="flex items-center gap-2">
-            <span className="opacity-60">✓</span> {f}
-          </li>
-        ))}
-      </ul>
-      <Link
-        href="/signup"
-        className="block text-center px-4 py-2.5 rounded-full text-sm font-semibold transition-colors"
-        style={{
-          backgroundColor: featured ? 'white' : 'var(--color-mauve)',
-          color: featured ? 'var(--color-mauve)' : 'white',
-        }}
-      >
-        Get started
-      </Link>
-    </div>
-  )
-}

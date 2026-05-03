@@ -116,7 +116,12 @@ function AddressForm({ initial, onSave, onCancel }: { initial: Address | null; o
   const [saved, setSaved] = useState(false)
 
   function update(field: string, value: string) {
-    setForm(f => ({ ...f, [field]: value }))
+    const titleCaseFields = ['name', 'address_line1', 'address_line2', 'city']
+    const formatted =
+      titleCaseFields.includes(field) ? toTitleCase(value) :
+      field === 'state' ? value.toUpperCase() :
+      value
+    setForm(f => ({ ...f, [field]: formatted }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -173,6 +178,11 @@ function AddressForm({ initial, onSave, onCancel }: { initial: Address | null; o
       </div>
     </form>
   )
+}
+
+// Capitalizes the first letter of every word, lowercases the rest
+function toTitleCase(str: string) {
+  return str.replace(/\b(\w)(\w*)/g, (_, first, rest) => first.toUpperCase() + rest.toLowerCase())
 }
 
 function Field({ label, value, onChange, required, colSpan }: { label: string; value: string; onChange: (v: string) => void; required?: boolean; colSpan?: boolean }) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { createClient } from '@/lib/supabase/client'
@@ -15,28 +15,47 @@ interface Props {
   profile: Profile
   addresses: Address[]
   monthYear: string
+  usedCount: number
+  maxLetters: number
 }
 
 const MAX_PHOTOS = 8
 const MAX_CHARS = 2500
 const PREVIEW_SCALE = 0.48
+const DRAFT_KEY = 'precious-post-draft'
 
-export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
+export function LetterEditorClient({ profile, addresses, monthYear, usedCount, maxLetters }: Props) {
   const router = useRouter()
   const previewRef = useRef<HTMLDivElement>(null)
 
-  const [photos, setPhotos] = useState<PhotoItem[]>([])
-  const [layout, setLayout] = useState<LayoutId>('hero-2-below')
-  const [photoAreaHeight, setPhotoAreaHeight] = useState(45)
-  const [font, setFont] = useState<FontFamily>('serif')
-  const [fontSize, setFontSize] = useState<FontSize>('medium')
-  const [letterText, setLetterText] = useState('')
-  const [addressId, setAddressId] = useState<string>(addresses[0]?.id ?? '')
+  // Load draft from localStorage on first render
+  const savedDraft = typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') } catch { return null } })()
+    : null
+
+  const [photos, setPhotos] = useState<PhotoItem[]>(savedDraft?.photos ?? [])
+  const [layout, setLayout] = useState<LayoutId>(savedDraft?.layout ?? 'hero-2-below')
+  const [photoAreaHeight, setPhotoAreaHeight] = useState(savedDraft?.photoAreaHeight ?? 45)
+  const [font, setFont] = useState<FontFamily>(savedDraft?.font ?? 'serif')
+  const [fontSize, setFontSize] = useState<FontSize>(savedDraft?.fontSize ?? 'medium')
+  const [letterText, setLetterText] = useState(savedDraft?.letterText ?? '')
+  const [addressId, setAddressId] = useState<string>(savedDraft?.addressId ?? addresses[0]?.id ?? '')
   const [showAddAddress, setShowAddAddress] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [showReview, setShowReview] = useState(false)
+  const [showSendAnother, setShowSendAnother] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+  const [submittedCount, setSubmittedCount] = useState(usedCount)
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const dragIndexRef = useRef<number | null>(null)
+
+  // Auto-save draft to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ photos, layout, photoAreaHeight, font, fontSize, letterText, addressId }))
+    } catch {}
+  }, [photos, layout, photoAreaHeight, font, fontSize, letterText, addressId])
 
   const selectedAddress = addresses.find(a => a.id === addressId)
   const currentLayoutDef = getLayout(layout)
@@ -154,7 +173,37 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
       body: JSON.stringify({ type: 'submitted', letterId: letter.id }),
     })
 
-    router.push('/dashboard?submitted=1')
+    // Clear the saved draft on successful submission
+    try { localStorage.removeItem(DRAFT_KEY) } catch {}
+
+    const newCount = submittedCount + 1
+    setSubmittedCount(newCount)
+    setSubmitting(false)
+
+    if (profile.plan === 'triple' && newCount < maxLetters) {
+      setShowSendAnother(true)
+    } else if (profile.plan === 'single') {
+      setShowUpgrade(true)
+    } else {
+      router.push('/dashboard?submitted=1')
+    }
+  }
+
+  function startAnotherLetter() {
+    setShowSendAnother(false)
+    setAddressId('')
+  }
+
+  function clearEditor() {
+    if (!confirm('Clear everything and start fresh?')) return
+    try { localStorage.removeItem(DRAFT_KEY) } catch {}
+    setPhotos([])
+    setLetterText('')
+    setAddressId('')
+    setLayout('hero-2-below')
+    setPhotoAreaHeight(45)
+    setFont('serif')
+    setFontSize('medium')
   }
 
   return (
@@ -168,12 +217,23 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>← Dashboard</Link>
             <button
-              onClick={handleSubmit}
+              onClick={() => setAddressId('')}
+              className="text-sm px-4 py-2 rounded-full border transition-colors"
+              style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal-light)' }}
+            >
+              Edit for new recipient
+            </button>
+            <button
+              onClick={() => {
+                if (!addressId) { alert('Please select a recipient.'); return }
+                if (!letterText.trim()) { alert('Please write your letter.'); return }
+                setShowReview(true)
+              }}
               disabled={submitting || !addressId || !letterText.trim()}
               className="px-5 py-2 rounded-full text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
               style={{ backgroundColor: 'var(--color-mauve)' }}
             >
-              {submitting ? 'Submitting…' : 'Submit for printing →'}
+              Review & Submit →
             </button>
           </div>
         </div>
@@ -403,6 +463,204 @@ export function LetterEditorClient({ profile, addresses, monthYear }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Upgrade Prompt Modal — Single Post users */}
+      {showUpgrade && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24,
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: 20, padding: 40,
+            maxWidth: 460, width: '100%', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>💌</div>
+            <h2 style={{ fontFamily: 'var(--font-playfair)', fontSize: 22, fontWeight: 700, color: 'var(--color-charcoal)', marginBottom: 10 }}>
+              Letter submitted!
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--color-charcoal-light)', marginBottom: 24 }}>
+              Would you like to send a letter to another recipient this month?
+            </p>
+            <div style={{
+              backgroundColor: 'var(--color-blush)', borderRadius: 16,
+              padding: '20px 24px', marginBottom: 24, textAlign: 'left',
+            }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mauve)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Triple Post — $32/mo</p>
+              <p style={{ fontSize: 14, color: 'var(--color-charcoal)', marginBottom: 12 }}>Send letters to up to 3 recipients every month.</p>
+              <ul style={{ fontSize: 13, color: 'var(--color-charcoal-light)', lineHeight: 1.8, listStyle: 'none', padding: 0, margin: 0 }}>
+                <li>✓ 3 letters per month</li>
+                <li>✓ Up to 3 different recipients</li>
+                <li>✓ Monthly reminder text</li>
+                <li>✓ No obligations, cancel anytime</li>
+              </ul>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={async () => {
+                  const res = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan: 'triple' }),
+                  })
+                  const { url, error } = await res.json()
+                  if (url) window.location.href = url
+                  else alert(error || 'Could not start upgrade.')
+                }}
+                style={{
+                  padding: '13px 0', borderRadius: 50, fontSize: 14, fontWeight: 600,
+                  color: 'white', backgroundColor: 'var(--color-mauve)', cursor: 'pointer', border: 'none',
+                }}
+              >
+                Upgrade to Triple Post →
+              </button>
+              <button
+                onClick={() => router.push('/dashboard?submitted=1')}
+                style={{
+                  padding: '13px 0', borderRadius: 50, fontSize: 14,
+                  color: 'var(--color-charcoal)', backgroundColor: 'white',
+                  border: '1px solid #e5e7eb', cursor: 'pointer',
+                }}
+              >
+                No thanks, go to dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Another Modal */}
+      {showSendAnother && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24,
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: 20, padding: 40,
+            maxWidth: 460, width: '100%', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>💌</div>
+            <h2 style={{ fontFamily: 'var(--font-playfair)', fontSize: 22, fontWeight: 700, color: 'var(--color-charcoal)', marginBottom: 10 }}>
+              Letter submitted!
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--color-charcoal-light)', marginBottom: 8 }}>
+              You have <strong>{maxLetters - submittedCount} letter{maxLetters - submittedCount !== 1 ? 's' : ''}</strong> remaining this month.
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--color-charcoal-light)', marginBottom: 28 }}>
+              Would you like to send another letter to a different recipient?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={startAnotherLetter}
+                style={{
+                  padding: '13px 0', borderRadius: 50, fontSize: 14, fontWeight: 600,
+                  color: 'white', backgroundColor: 'var(--color-mauve)', cursor: 'pointer', border: 'none',
+                }}
+              >
+                Yes, send another letter →
+              </button>
+              <button
+                onClick={() => router.push('/dashboard?submitted=1')}
+                style={{
+                  padding: '13px 0', borderRadius: 50, fontSize: 14,
+                  color: 'var(--color-charcoal)', backgroundColor: 'white',
+                  border: '1px solid #e5e7eb', cursor: 'pointer',
+                }}
+              >
+                No, go to dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review & Approve Modal */}
+      {showReview && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 20,
+              padding: 32,
+              maxWidth: 600,
+              width: '100%',
+              maxHeight: '95vh',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 24,
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <h2 style={{ fontFamily: 'var(--font-playfair)', fontSize: 22, fontWeight: 700, color: 'var(--color-charcoal)', marginBottom: 6 }}>
+                Review Your Letter
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--color-charcoal-light)' }}>
+                This is exactly what will be printed and mailed to <strong>{selectedAddress?.name}</strong>. Approve to submit.
+              </p>
+            </div>
+
+            {/* Full preview at larger scale */}
+            <div style={{
+              width: 816 * 0.62,
+              height: 1056 * 0.62,
+              boxShadow: '0 4px 32px rgba(0,0,0,0.15)',
+              borderRadius: 4,
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}>
+              <LetterPreview
+                layout={layout}
+                photos={photos}
+                photoAreaHeight={photoAreaHeight}
+                photoAreaWidth={100}
+                font={font}
+                fontSize={fontSize}
+                letterText={letterText}
+                senderName={profile.name}
+                address={selectedAddress}
+                scale={0.62}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              <button
+                onClick={() => setShowReview(false)}
+                style={{
+                  flex: 1, padding: '12px 0', borderRadius: 50, fontSize: 14,
+                  border: '1px solid #e5e7eb', color: 'var(--color-charcoal)',
+                  backgroundColor: 'white', cursor: 'pointer',
+                }}
+              >
+                ← Go back & edit
+              </button>
+              <button
+                onClick={() => { setShowReview(false); handleSubmit() }}
+                disabled={submitting}
+                style={{
+                  flex: 1, padding: '12px 0', borderRadius: 50, fontSize: 14,
+                  fontWeight: 600, color: 'white', cursor: 'pointer',
+                  backgroundColor: 'var(--color-mauve)',
+                  opacity: submitting ? 0.6 : 1,
+                }}
+              >
+                {submitting ? 'Submitting…' : '✓ Approve & Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

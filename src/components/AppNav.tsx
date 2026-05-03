@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
@@ -18,6 +18,14 @@ export function AppNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setIsAdmin(data.user?.email === 'lauren@preciouspost.co')
+    })
+  }, [])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -45,6 +53,15 @@ export function AppNav() {
               {l.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="text-xs font-semibold px-3 py-1 rounded-full"
+              style={{ backgroundColor: 'var(--color-mauve)', color: 'white' }}
+            >
+              Admin
+            </Link>
+          )}
           <button
             onClick={handleLogout}
             className="text-sm transition-colors"
@@ -81,6 +98,11 @@ export function AppNav() {
               {l.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link href="/admin" onClick={() => setMenuOpen(false)} className="block text-sm font-semibold py-1.5" style={{ color: 'var(--color-mauve)' }}>
+              Admin Dashboard
+            </Link>
+          )}
           <button onClick={handleLogout} className="block text-sm py-1.5 w-full text-left" style={{ color: 'var(--color-charcoal-light)' }}>
             Log out
           </button>

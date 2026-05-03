@@ -12,7 +12,7 @@ const FAQS = [
   },
   {
     q: 'When does my letter get mailed?',
-    a: 'Once you submit your letter, Lauren prints and mails it within 2 business days. You\'ll receive an SMS confirmation when your letter is submitted.',
+    a: 'Once you submit your letter, Lauren prints and mails it within 3 business days. You\'ll receive an SMS confirmation when your letter is submitted.',
   },
   {
     q: 'What does the letter look like?',
@@ -32,7 +32,7 @@ const FAQS = [
   },
   {
     q: 'How many photos can I include?',
-    a: 'You can upload up to 6 photos per letter. Choose from several layout options including side-by-side, hero with smaller photos, grid, and more.',
+    a: 'You can upload up to 8 photos per letter. Choose from several layout options including side-by-side, hero with smaller photos, grid, and more.',
   },
   {
     q: 'Can I cancel my subscription?',

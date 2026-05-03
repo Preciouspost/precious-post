@@ -19,6 +19,8 @@ interface Props {
   scale?: number
   onPanPhoto?: (index: number, x: number, y: number) => void
   onResizePhotoArea?: (heightPct: number) => void
+  /** Pre-cropped photo data URLs for PDF rendering (bypasses object-fit limitation in html2canvas) */
+  photoCroppedUrls?: string[]
 }
 
 const PAGE_W = 816
@@ -26,7 +28,7 @@ const PAGE_H = 1056
 const PADDING = 40
 
 export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPreview(
-  { layout, photos, photoAreaHeight, font, fontSize, letterText, senderName, scale = 1, onPanPhoto, onResizePhotoArea },
+  { layout, photos, photoAreaHeight, font, fontSize, letterText, senderName, scale = 1, onPanPhoto, onResizePhotoArea, photoCroppedUrls },
   ref
 ) {
   const layoutDef = getLayout(layout)
@@ -118,6 +120,10 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
         overflow: 'hidden',
       }}
     >
+      {/* Content wrapper — flex:1 so it takes all space above the footer,
+          preventing marginTop:auto on the footer from starving the text area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+
       {/* Date */}
       <p style={{ fontSize: 12, color: '#6b6b6b', marginBottom: 8, textAlign: 'right', flexShrink: 0 }}>
         {today}
@@ -138,7 +144,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
               flexShrink: 0,
             }}
           >
-            <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />
+            <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} />
             {resizeHandle}
           </div>
 
@@ -184,7 +190,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
             </div>
           )}
           <div style={{ width: `${photoWidthPct}%`, flexShrink: 0, position: 'relative' }}>
-            {layoutDef && <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />}
+            {layoutDef && <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} />}
           </div>
           {layoutDef?.textPosition === 'right' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
@@ -205,27 +211,60 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
         <>
           {photos.length > 0 && layoutDef && (
             <div style={{ width: '100%', height: photoAreaPx, flexShrink: 0, position: 'relative' }}>
-              <PhotoGrid slots={layoutDef.slots} photos={photos} onPan={onPanPhoto} />
+              <PhotoGrid slots={layoutDef.slots} photos={photos} croppedUrls={photoCroppedUrls} onPan={onPanPhoto} />
               {resizeHandle}
             </div>
           )}
           {photos.length > 0 && <div style={{ height: 12, flexShrink: 0 }} />}
 
-          <div style={{ ...textStyle, flex: 1, overflow: 'hidden' }}>
-            {letterText || <span style={{ color: '#ccc' }}>Your letter will appear here…</span>}
-          </div>
+          {/* Text + signature: flex:1 wrapper with absolute children so the signature
+              is always pinned to the bottom of the text area (flush above the footer
+              line) regardless of how much letter text there is. */}
+          <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+            <div style={{
+              ...textStyle,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: senderName ? 48 : 0,
+              overflow: 'hidden',
+            }}>
+              {letterText || <span style={{ color: '#ccc' }}>Your letter will appear here…</span>}
+            </div>
 
-          {senderName && (
-            <p style={{ fontSize: 14, color: '#4A4A4A', marginTop: 12, flexShrink: 0, fontFamily }}>
-              With love,<br />{senderName}
-            </p>
-          )}
+            {senderName && (
+              <p style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                margin: 0,
+                paddingTop: 6,
+                paddingBottom: 0,
+                lineHeight: 1.2,
+                fontSize: 14,
+                color: '#4A4A4A',
+                fontFamily,
+                backgroundColor: 'white',
+              }}>
+                With love,<br />{senderName}
+              </p>
+            )}
+          </div>
         </>
       )}
 
-      {/* Footer logo — always locked at bottom */}
-      <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid #F9EDE8', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <PreciousPostLogo size="md" />
+      </div>{/* end content wrapper */}
+
+      {/* Footer logo — always locked at bottom by the flex:1 content wrapper above */}
+      <div style={{ paddingTop: 1, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+        {photoCroppedUrls !== undefined ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src="/logo.png" alt="Precious Post" width={100} height={100} style={{ objectFit: 'contain' }} crossOrigin="anonymous" />
+        ) : (
+          <PreciousPostLogo size="sm" />
+        )}
       </div>
     </div>
   )
@@ -234,10 +273,12 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
 function PhotoGrid({
   slots,
   photos,
+  croppedUrls,
   onPan,
 }: {
   slots: SlotDef[]
   photos: PhotoItem[]
+  croppedUrls?: string[]
   onPan?: (index: number, x: number, y: number) => void
 }) {
   const [activeSlot, setActiveSlot] = useState<number | null>(null)
@@ -298,20 +339,33 @@ function PhotoGrid({
             }}
           >
             {photo ? (
-              <img
-                src={photo.url}
-                alt=""
-                draggable={false}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: `${photo.x}% ${photo.y}%`,
-                  userSelect: 'none',
-                  pointerEvents: 'none',
-                }}
-                crossOrigin="anonymous"
-              />
+              croppedUrls?.[i] ? (
+                // Pre-cropped for PDF: image is already the right crop, just fill the slot.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={croppedUrls[i]}
+                  alt=""
+                  draggable={false}
+                  style={{ width: '100%', height: '100%', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
+                />
+              ) : (
+                // Browser preview: use object-fit cover for smooth panning.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photo.url}
+                  alt=""
+                  draggable={false}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: `${photo.x}% ${photo.y}%`,
+                    userSelect: 'none',
+                    pointerEvents: 'none',
+                  }}
+                  crossOrigin="anonymous"
+                />
+              )
             ) : (
               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ fontSize: 18, opacity: 0.25 }}>📷</span>

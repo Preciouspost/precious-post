@@ -25,20 +25,33 @@ export async function POST(req: Request) {
     const subscriptionId = session.subscription as string
 
     if (userId && plan) {
+      // Check if this is an upgrade (user already has a different active plan)
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('name, phone, plan')
+        .eq('user_id', userId)
+        .single()
+
+      const previousPlan = existingProfile?.plan
+      const isUpgrade = previousPlan && previousPlan !== plan
+
       await supabase.from('profiles').update({
         plan,
         stripe_subscription_id: subscriptionId,
         stripe_subscription_status: 'active',
       }).eq('user_id', userId)
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name, phone')
-        .eq('user_id', userId)
-        .single()
+      // Log the upgrade
+      if (isUpgrade) {
+        await supabase.from('plan_upgrades').insert({
+          user_id: userId,
+          upgraded_from: previousPlan,
+          upgraded_to: plan,
+        })
+      }
 
-      if (profile?.phone) {
-        await sendSMS(profile.phone, SMS_TEMPLATES.welcome(profile.name))
+      if (existingProfile?.phone && !isUpgrade) {
+        await sendSMS(existingProfile.phone, SMS_TEMPLATES.welcome(existingProfile.name))
       }
     }
   }

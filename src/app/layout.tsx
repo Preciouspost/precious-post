@@ -7,7 +7,7 @@ const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfa
 const caveat = Caveat({ subsets: ['latin'], variable: '--font-caveat' })
 
 export const metadata: Metadata = {
-  title: 'Precious Post — Monthly Photo Letters',
+  title: 'Precious Post',
   description: 'Send handcrafted photo letters to the people you love, every month.',
 }
 

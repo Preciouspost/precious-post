@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PreciousPostLogo } from '@/components/Logo'
+import { AppNav } from '@/components/AppNav'
 import { PLANS } from '@/lib/utils'
 
 export default function SelectPlanPage() {
@@ -26,16 +27,15 @@ export default function SelectPlanPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--color-blush)' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-blush)' }}>
+      <AppNav />
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-2xl">
-        <div className="flex justify-center mb-10">
-          <PreciousPostLogo />
-        </div>
         <h1 className="text-3xl font-bold text-center mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
           Choose your plan
         </h1>
         <p className="text-center text-sm mb-10" style={{ color: 'var(--color-charcoal-light)' }}>
-          Cancel anytime. No hidden fees.
+          The gift that arrives every month.
         </p>
 
         <div className="grid sm:grid-cols-2 gap-6">
@@ -56,11 +56,13 @@ export default function SelectPlanPage() {
                 {PLANS[plan].description}
               </p>
               <ul className="space-y-2 text-sm mb-6" style={{ color: 'var(--color-charcoal)' }}>
-                <li>✓ Up to 6 photos per letter</li>
+                <li>✓ Up to 8 photos per letter</li>
                 <li>✓ Choose layout &amp; font</li>
                 <li>✓ Printed on 8.5×11</li>
-                <li>✓ Mailed within 2 business days</li>
+                <li>✓ Printed &amp; mailed for you</li>
                 {plan === 'triple' && <li>✓ Up to 3 different recipients</li>}
+                <li>✓ Monthly reminder text</li>
+                <li>✓ No obligations, cancel anytime</li>
               </ul>
               <button
                 onClick={() => selectPlan(plan)}
@@ -73,6 +75,7 @@ export default function SelectPlanPage() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   )

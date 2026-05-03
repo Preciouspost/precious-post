@@ -41,6 +41,8 @@ export default async function NewLetterPage() {
       profile={profile}
       addresses={addresses ?? []}
       monthYear={monthYear}
+      usedCount={usedCount}
+      maxLetters={maxLetters}
     />
   )
 }

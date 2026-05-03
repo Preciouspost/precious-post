@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Subscribers Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #fdf6f3; color: #2d2d2d; }
+  nav { background: white; border-bottom: 1px solid #f0e0d8; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: 0.04em; }
+  nav .admin-badge { background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  nav .logout { font-size: 13px; color: #9b8ea0; cursor: pointer; }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+  h1 { font-family: Georgia, serif; font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 8px; margin-bottom: 28px; }
+  .tab { padding: 6px 18px; border-radius: 99px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #e5e7eb; background: white; color: #2d2d2d; }
+  .tab.active { background: #b08090; color: white; border-color: #b08090; }
+
+  /* Stat cards */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  .stat-card { background: white; border-radius: 16px; padding: 20px; border: 1px solid #f0e0d8; }
+  .stat-card .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9b8ea0; margin-bottom: 6px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; color: #2d2d2d; line-height: 1; }
+  .stat-card .sub { font-size: 11px; color: #9b8ea0; margin-top: 5px; }
+  .stat-card .delta-up { color: #16a34a; font-size: 11px; margin-top: 5px; font-weight: 500; }
+
+  /* Plan breakdown */
+  .section-title { font-size: 13px; font-weight: 600; color: #9b8ea0; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+  .plan-bars { background: white; border-radius: 16px; padding: 20px; border: 1px solid #f0e0d8; margin-bottom: 24px; display: flex; gap: 24px; align-items: center; }
+  .plan-bar-item { flex: 1; }
+  .plan-bar-item .plan-name { font-size: 13px; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .bar-track { height: 8px; background: #f3f4f6; border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; }
+  .bar-fill.single { background: #c9a8b4; width: 40%; }
+  .bar-fill.triple { background: #b08090; width: 60%; }
+  .plan-bar-item .plan-rev { font-size: 12px; color: #9b8ea0; margin-top: 4px; }
+
+  /* Table */
+  .table-wrap { background: white; border-radius: 16px; border: 1px solid #f0e0d8; overflow: hidden; }
+  .table-header { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr; gap: 12px; padding: 12px 20px; background: #fdf6f3; border-bottom: 1px solid #f0e0d8; }
+  .table-header span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #9b8ea0; }
+  .table-row { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #f9f0ec; align-items: center; }
+  .table-row:last-child { border-bottom: none; }
+  .name { font-size: 14px; font-weight: 500; }
+  .email { font-size: 12px; color: #9b8ea0; margin-top: 2px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 99px; }
+  .badge.single { background: #f3e8ee; color: #b08090; }
+  .badge.triple { background: #ede0e8; color: #8a5a6a; }
+  .cell { font-size: 13px; color: #2d2d2d; }
+  .cell.muted { color: #9b8ea0; }
+  .status-active { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #16a34a; font-weight: 500; }
+  .status-active::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #16a34a; display: block; }
+  .status-canceled { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #9b8ea0; }
+  .status-canceled::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; display: block; }
+
+  .export-btn { float: right; padding: 7px 16px; background: white; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 12px; font-weight: 500; cursor: pointer; color: #2d2d2d; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <span style="font-size:18px;">✿</span> PRECIOUS POST
+    <span class="admin-badge">Admin</span>
+  </div>
+  <span class="logout">Log out</span>
+</nav>
+
+<main>
+  <h1>Letters Dashboard</h1>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab">Submitted</div>
+    <div class="tab">Printed</div>
+    <div class="tab">Mailed</div>
+    <div class="tab">Draft</div>
+    <div class="tab active">Subscribers</div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Total Subscribers</div>
+      <div class="value">12</div>
+      <div class="delta-up">↑ 3 this month</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Single Post</div>
+      <div class="value">5</div>
+      <div class="sub">$12.95/mo each</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Triple Post</div>
+      <div class="value">7</div>
+      <div class="sub">$32.00/mo each</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Monthly Revenue</div>
+      <div class="value">$289</div>
+      <div class="delta-up">↑ $64 vs last month</div>
+    </div>
+  </div>
+
+  <!-- Plan breakdown bars -->
+  <p class="section-title">Plan Breakdown</p>
+  <div class="plan-bars">
+    <div class="plan-bar-item">
+      <div class="plan-name">
+        <span>Single Post</span>
+        <span>5 subscribers</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill single"></div></div>
+      <div class="plan-rev">$64.75 / mo</div>
+    </div>
+    <div style="width:1px;background:#f0e0d8;"></div>
+    <div class="plan-bar-item">
+      <div class="plan-name">
+        <span>Triple Post</span>
+        <span>7 subscribers</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill triple"></div></div>
+      <div class="plan-rev">$224.00 / mo</div>
+    </div>
+  </div>
+
+  <!-- Subscriber table -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <p class="section-title" style="margin-bottom:0;">All Subscribers</p>
+    <button class="export-btn">⬇ Export CSV</button>
+  </div>
+  <div class="table-wrap">
+    <div class="table-header">
+      <span>Name</span>
+      <span>Plan</span>
+      <span>Subscribed</span>
+      <span>Letters Sent</span>
+      <span>Status</span>
+    </div>
+    <div class="table-row">
+      <div><div class="name">Lauren Kohler</div><div class="email">lauren.taylor521@yahoo.com</div></div>
+      <div><span class="badge triple">Triple Post</span></div>
+      <div class="cell">Apr 15, 2026</div>
+      <div class="cell">3</div>
+      <div><span class="status-active">Active</span></div>
+    </div>
+    <div class="table-row">
+      <div><div class="name">Sarah Mitchell</div><div class="email">smitchell@gmail.com</div></div>
+      <div><span class="badge single">Single Post</span></div>
+      <div class="cell">Apr 22, 2026</div>
+      <div class="cell">1</div>
+      <div><span class="status-active">Active</span></div>
+    </div>
+    <div class="table-row">
+      <div><div class="name">James Donovan</div><div class="email">james.d@icloud.com</div></div>
+      <div><span class="badge triple">Triple Post</span></div>
+      <div class="cell">Mar 10, 2026</div>
+      <div class="cell">6</div>
+      <div><span class="status-active">Active</span></div>
+    </div>
+    <div class="table-row" style="opacity:0.5;">
+      <div><div class="name">Amy Torres</div><div class="email">amy.torres@outlook.com</div></div>
+      <div><span class="badge single">Single Post</span></div>
+      <div class="cell">Feb 3, 2026</div>
+      <div class="cell">2</div>
+      <div><span class="status-canceled">Canceled</span></div>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

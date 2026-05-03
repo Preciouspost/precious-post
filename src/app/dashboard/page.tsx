@@ -53,7 +53,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
-            Hello, {profile.name.split(' ')[0]} 👋
+            Hello, {(profile.name ?? 'there').split(' ')[0]} 👋
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>
             {formatMonthYear(monthYear)} · {PLANS[profile.plan].name}

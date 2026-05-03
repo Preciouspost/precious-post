@@ -10,9 +10,13 @@ export function ManageBillingButton() {
   async function handleClick() {
     setLoading(true)
     const res = await fetch('/api/portal', { method: 'POST' })
-    const { url } = await res.json()
-    if (url) router.push(url)
-    else setLoading(false)
+    const { url, error } = await res.json()
+    if (url) {
+      window.location.href = url
+    } else {
+      alert(error || 'Could not open billing portal.')
+      setLoading(false)
+    }
   }
 
   return (
@@ -22,7 +26,7 @@ export function ManageBillingButton() {
       className="text-sm transition-colors disabled:opacity-50"
       style={{ color: 'var(--color-charcoal-light)' }}
     >
-      {loading ? '…' : 'Billing'}
+      {loading ? '…' : 'Manage subscription & billing'}
     </button>
   )
 }

@@ -4,6 +4,8 @@ import { AppNav } from '@/components/AppNav'
 import { Profile } from '@/types'
 import { PLANS, formatMonthYear, getCurrentMonthYear, getMaxLetters } from '@/lib/utils'
 import { AccountClient } from './AccountClient'
+import { ManageBillingButton } from '@/components/ManageBillingButton'
+import { CancelSubscriptionButton } from '@/components/CancelSubscriptionButton'
 
 export default async function AccountPage() {
   const supabase = await createClient()
@@ -80,6 +82,7 @@ export default async function AccountPage() {
               </div>
               <div className="pt-2 border-t" style={{ borderColor: 'var(--color-blush-dark)' }}>
                 <ManageBillingButton />
+                <CancelSubscriptionButton />
               </div>
             </div>
           ) : (
@@ -126,12 +129,3 @@ function StatBox({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ManageBillingButton() {
-  return (
-    <form action="/api/portal" method="POST">
-      <button type="submit" className="text-sm underline" style={{ color: 'var(--color-mauve)' }}>
-        Manage billing & cancel →
-      </button>
-    </form>
-  )
-}
