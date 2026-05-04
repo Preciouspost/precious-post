@@ -9,6 +9,18 @@ const caveat = Caveat({ subsets: ['latin'], variable: '--font-caveat' })
 export const metadata: Metadata = {
   title: 'Precious Post',
   description: 'Send handcrafted photo letters to the people you love, every month.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://precious-post.vercel.app'),
+  openGraph: {
+    title: 'Precious Post',
+    description: 'Send handcrafted photo letters to the people you love, every month.',
+    siteName: 'Precious Post',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Precious Post',
+    description: 'Send handcrafted photo letters to the people you love, every month.',
+  },
 }
 
 export const viewport = {
