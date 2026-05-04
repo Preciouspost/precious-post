@@ -30,6 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, alreadyJoined: true })
   }
 
+  // Try full insert with all fields
   const { error } = await supabase.from('waitlist').insert({
     name:       name?.trim()  || null,
     email:      cleanEmail,
@@ -40,12 +41,26 @@ export async function POST(req: Request) {
   })
 
   if (error) {
-    console.error('[Waitlist] insert error:', error.code, error.message, error.details)
+    // PGRST204 = column doesn't exist yet — fall back to basic columns
+    if (error.code === 'PGRST204') {
+      const { error: fallbackError } = await supabase.from('waitlist').insert({
+        name:  name?.trim()  || null,
+        email: cleanEmail,
+        phone: phone?.trim() || null,
+      })
+      if (fallbackError) {
+        if (fallbackError.code === '23505') return NextResponse.json({ success: true, alreadyJoined: true })
+        console.error('[Waitlist] fallback insert error:', fallbackError.message)
+        return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+      }
+      return NextResponse.json({ success: true })
+    }
     // Unique violation = already on list
     if (error.code === '23505') {
       return NextResponse.json({ success: true, alreadyJoined: true })
     }
-    return NextResponse.json({ error: `Something went wrong: ${error.message}` }, { status: 500 })
+    console.error('[Waitlist] insert error:', error.code, error.message)
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
