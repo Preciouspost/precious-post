@@ -189,9 +189,6 @@ export default function WaitlistPage() {
                       Who would you send a letter to — and why?{' '}
                       <span className="font-normal" style={{ color: 'var(--color-charcoal-light)' }}>(optional)</span>
                     </label>
-                    <p className="text-xs mb-2" style={{ color: 'var(--color-charcoal-light)' }}>
-                      We'd love to hear your story. Is it a grandparent, a best friend far away, a child at college?
-                    </p>
                     <textarea
                       value={story}
                       onChange={e => setStory(e.target.value)}

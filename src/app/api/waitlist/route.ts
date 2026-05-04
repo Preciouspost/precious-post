@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 export async function POST(req: Request) {
   const { name, email, phone, heard_from, story, share_ok } = await req.json()
@@ -8,31 +16,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 })
   }
 
-  const supabase = await createAdminClient()
+  const supabase = getSupabase()
+  const cleanEmail = email.toLowerCase().trim()
 
-  // Check for duplicate
+  // Check for duplicate (maybeSingle avoids error when no row found)
   const { data: existing } = await supabase
     .from('waitlist')
     .select('id')
-    .eq('email', email.toLowerCase().trim())
-    .single()
+    .eq('email', cleanEmail)
+    .maybeSingle()
 
   if (existing) {
     return NextResponse.json({ success: true, alreadyJoined: true })
   }
 
   const { error } = await supabase.from('waitlist').insert({
-    name:       name?.trim()           || null,
-    email:      email.toLowerCase().trim(),
-    phone:      phone?.trim()          || null,
-    heard_from: heard_from             || null,
-    story:      story?.trim()          || null,
+    name:       name?.trim()  || null,
+    email:      cleanEmail,
+    phone:      phone?.trim() || null,
+    heard_from: heard_from    || null,
+    story:      story?.trim() || null,
     share_ok:   share_ok === true,
   })
 
   if (error) {
-    console.error('[Waitlist] insert error:', error)
-    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+    console.error('[Waitlist] insert error:', error.code, error.message, error.details)
+    // Unique violation = already on list
+    if (error.code === '23505') {
+      return NextResponse.json({ success: true, alreadyJoined: true })
+    }
+    return NextResponse.json({ error: `Something went wrong: ${error.message}` }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
