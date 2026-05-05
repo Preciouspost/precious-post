@@ -837,16 +837,28 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
       <>
         {showUpgrade && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <div style={{ backgroundColor: 'white', borderRadius: 20, padding: 40, maxWidth: 460, width: '100%', textAlign: 'center' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: 20, padding: isMobile ? 24 : 40, maxWidth: 460, width: '100%', textAlign: 'center' }}>
               <div style={{ fontSize: 40, marginBottom: 16 }}>💌</div>
               <h2 style={{ fontFamily: 'var(--font-playfair)', fontSize: 22, fontWeight: 700, color: 'var(--color-charcoal)', marginBottom: 10 }}>Letter submitted!</h2>
               <p style={{ fontSize: 14, color: 'var(--color-charcoal-light)', marginBottom: 24 }}>Would you like to send a letter to another recipient this month?</p>
               <div style={{ backgroundColor: 'var(--color-blush)', borderRadius: 16, padding: '20px 24px', marginBottom: 24, textAlign: 'left' }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mauve)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Triple Post — $32/mo</p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-mauve)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Triple Post</p>
+                  <p style={{ fontSize: 13, color: 'var(--color-charcoal-light)', textDecoration: 'line-through' }}>$32/mo</p>
+                </div>
                 <p style={{ fontSize: 14, color: 'var(--color-charcoal)', marginBottom: 12 }}>Send letters to up to 3 recipients every month.</p>
-                <ul style={{ fontSize: 13, color: 'var(--color-charcoal-light)', lineHeight: 1.8, listStyle: 'none', padding: 0, margin: 0 }}>
-                  <li>✓ 3 letters per month</li><li>✓ Up to 3 different recipients</li><li>✓ Monthly reminder text</li><li>✓ No obligations, cancel anytime</li>
+                <ul style={{ fontSize: 13, color: 'var(--color-charcoal-light)', lineHeight: 1.8, listStyle: 'none', padding: 0, margin: '0 0 16px' }}>
+                  <li>✓ 3 letters per month</li>
+                  <li>✓ Up to 3 different recipients</li>
+                  <li>✓ Up to 8 photos each</li>
+                  <li>✓ Printed &amp; mailed for you</li>
+                  <li>✓ Monthly reminder text</li>
+                  <li>✓ No obligations, cancel anytime</li>
                 </ul>
+                <div style={{ backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 10, padding: '12px 14px' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-charcoal)', marginBottom: 4 }}>First month: only $19.05</p>
+                  <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', lineHeight: 1.5 }}>You'll be charged the difference for your current billing period. Starting next month: $32/mo.</p>
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button onClick={async () => { const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: 'triple' }) }); const { url, error } = await res.json(); if (url) window.location.href = url; else alert(error || 'Could not start upgrade.') }}
