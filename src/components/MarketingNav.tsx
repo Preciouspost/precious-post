@@ -98,27 +98,14 @@ export function MarketingNav() {
         {/* ── Mobile right side: auth buttons always visible ── */}
         <div className="flex md:hidden items-center gap-2">
           {loggedIn ? (
-            <>
-              <Link
-                href="/dashboard"
-                className="px-3 py-1.5 text-sm font-semibold rounded-full text-white"
-                style={{ backgroundColor: 'var(--color-mauve)' }}
-              >
-                Dashboard
-              </Link>
-              {/* Hamburger for nav links */}
-              <button
-                onClick={() => setOpen(!open)}
-                className="p-1.5 rounded-lg"
-                style={{ color: 'var(--color-charcoal-light)' }}
-                aria-label="Menu"
-              >
-                {open
-                  ? <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                  : <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
-                }
-              </button>
-            </>
+            <button
+              onClick={() => setOpen(!open)}
+              className="px-3 py-1.5 text-sm font-semibold rounded-full border"
+              style={{ borderColor: 'var(--color-mauve)', color: 'var(--color-mauve)' }}
+              aria-label="Menu"
+            >
+              {open ? 'Close ×' : 'Menu'}
+            </button>
           ) : (
             <>
               <Link
@@ -143,6 +130,14 @@ export function MarketingNav() {
       {/* Mobile dropdown — nav links only (auth handled above) */}
       {open && (
         <div className="md:hidden border-t px-5 py-3 space-y-1" style={{ borderColor: 'var(--color-blush-dark)', backgroundColor: 'white' }}>
+          <Link
+            href="/dashboard"
+            onClick={() => setOpen(false)}
+            className="block text-sm font-semibold py-2"
+            style={{ color: 'var(--color-mauve)' }}
+          >
+            My Dashboard
+          </Link>
           {links.map(l => (
             <Link
               key={l.href}
