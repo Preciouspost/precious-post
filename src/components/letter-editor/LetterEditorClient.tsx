@@ -57,6 +57,15 @@ function IconSwap({ color = 'currentColor' }: { color?: string }) {
 function IconUpload({ color = 'currentColor' }: { color?: string }) {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
 }
+function UploadSpinner() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
+      <circle cx="18" cy="18" r="14" stroke="var(--color-blush-dark)" strokeWidth="3" />
+      <path d="M18 4 A14 14 0 0 1 32 18" stroke="var(--color-mauve)" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  )
+}
 function IconScale({ color = 'currentColor' }: { color?: string }) {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
 }
@@ -426,7 +435,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
           </div>
         ))}
 
-        {photos.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', paddingLeft: 4 }}>Add photos, or tap an empty slot in the preview above</p>}
+        {photos.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', paddingLeft: 4 }}>Tap the + to add photos</p>}
         {photos.length >= 2 && (
           <>
             <div style={{ flex: 1, minWidth: 8 }} />
@@ -434,7 +443,10 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
           </>
         )}
       </div>
-      {isMobile && photos.length > 0 && (
+      {isMobile && uploadingPhotos && (
+        <p style={{ fontSize: 10, color: 'var(--color-mauve)', textAlign: 'center', paddingBottom: 6, fontWeight: 600 }}>Uploading… this may take a moment. Refresh if a photo doesn't appear.</p>
+      )}
+      {isMobile && !uploadingPhotos && photos.length > 0 && (
         <p style={{ fontSize: 10, color: 'var(--color-charcoal-light)', textAlign: 'center', paddingBottom: 6 }}>Tap photo in preview to edit · drag here to reorder</p>
       )}
     </div>
@@ -573,7 +585,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
           )}
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: 816 * mobileScale, height: 1056 * mobileScale, flexShrink: 0, boxShadow: '0 2px 16px rgba(0,0,0,0.10)', borderRadius: 3, overflow: 'hidden' }}>
+            style={{ position: 'relative', width: 816 * mobileScale, height: 1056 * mobileScale, flexShrink: 0, boxShadow: '0 2px 16px rgba(0,0,0,0.10)', borderRadius: 3, overflow: 'hidden' }}>
             <LetterPreview
               ref={previewRef}
               layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100}
@@ -586,6 +598,14 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
               selectedSlot={selectedSlot}
               swapMode={swapMode}
             />
+            {/* Upload loading overlay */}
+            {uploadingPhotos && (
+              <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(249,237,232,0.82)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 30 }}>
+                <UploadSpinner />
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-mauve)', textAlign: 'center', padding: '0 16px' }}>Uploading photos…</p>
+                <p style={{ fontSize: 10, color: 'var(--color-charcoal-light)', textAlign: 'center', padding: '0 20px' }}>This may take a moment. Refresh if a photo doesn't appear.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -749,7 +769,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
               Live preview — 8.5 × 11&quot; letter
               {selectedSlot !== null && <span style={{ color: 'var(--color-mauve)', marginLeft: 8 }}>Drag to pan · click elsewhere to deselect</span>}
             </p>
-            <div style={{ width: 816 * PREVIEW_SCALE, height: 1056 * PREVIEW_SCALE, boxShadow: '0 4px 32px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+            <div style={{ position: 'relative', width: 816 * PREVIEW_SCALE, height: 1056 * PREVIEW_SCALE, boxShadow: '0 4px 32px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
               <LetterPreview
                 ref={previewRef}
                 layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100}
@@ -762,6 +782,13 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
                 selectedSlot={selectedSlot}
                 swapMode={swapMode}
               />
+              {uploadingPhotos && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(249,237,232,0.82)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, zIndex: 30 }}>
+                  <UploadSpinner />
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-mauve)' }}>Uploading photos…</p>
+                  <p style={{ fontSize: 11, color: 'var(--color-charcoal-light)', textAlign: 'center', maxWidth: 220 }}>This may take a moment. Refresh if a photo doesn't appear.</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -789,7 +816,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
                   <button onClick={e => { e.stopPropagation(); removePhoto(photo.id) }} style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.55)', color: 'white', border: 'none', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
                 </div>
               ))}
-              {photos.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', paddingLeft: 4 }}>Add photos, or click an empty slot on the preview above</p>}
+              {photos.length === 0 && <p style={{ fontSize: 12, color: 'var(--color-charcoal-light)', paddingLeft: 4 }}>Click + to add photos</p>}
               {photos.length >= 2 && (
                 <><div style={{ flex: 1, minWidth: 8 }} />
                 <button onClick={autofill} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 20, border: '1px solid var(--color-blush-dark)', backgroundColor: 'var(--color-blush)', fontSize: 11, fontWeight: 600, color: 'var(--color-mauve)', cursor: 'pointer', whiteSpace: 'nowrap' }}>↺ Autofill</button></>
