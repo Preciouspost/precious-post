@@ -23,4 +23,7 @@ export const SMS_TEMPLATES = {
 
   submitted: (recipientName: string) =>
     `Your letter to ${recipientName} has been submitted! Lauren will print and mail it within 2 business days. 💌`,
+
+  nudgeReminder: (name: string) =>
+    `Hi ${name}! Just a reminder — your Precious Post letter hasn't been sent yet this month. A few minutes is all it takes 💌 ${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
 }
