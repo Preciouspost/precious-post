@@ -14,16 +14,18 @@ export async function sendSMS(to: string, body: string) {
   })
 }
 
+const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://precious-post.vercel.app'
+
 export const SMS_TEMPLATES = {
   welcome: (name: string) =>
-    `Welcome to Precious Post, ${name}! 💌 Your first letter is waiting to be written. Log in to get started: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    `Welcome to Precious Post, ${name}! 💌 Your first letter is waiting to be written. Log in to get started: ${APP_URL}/dashboard`,
 
   monthlyReminder: (name: string) =>
-    `Hi ${name}! It's time to send your Precious Post letter this month. Click here to write it: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    `Hi ${name}! It's time to send your Precious Post letter this month. Write it here: ${APP_URL}/dashboard`,
 
   submitted: (recipientName: string) =>
     `Your letter to ${recipientName} has been submitted! Lauren will print and mail it within 2 business days. 💌`,
 
   nudgeReminder: (name: string) =>
-    `Hi ${name}! Just a reminder — your Precious Post letter hasn't been sent yet this month. A few minutes is all it takes 💌 ${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    `Hi ${name}! Just a reminder — your Precious Post letter hasn't been sent yet this month. A few minutes is all it takes 💌 ${APP_URL}/dashboard`,
 }
