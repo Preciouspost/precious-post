@@ -141,9 +141,12 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     return () => window.removeEventListener('resize', update)
   }, [])
 
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+
   useEffect(() => {
     try {
       localStorage.setItem(draftKey(profile.user_id), JSON.stringify({ photos, layout, photoAreaHeight, font, fontSize, letterText, addressId }))
+      setLastSaved(new Date())
     } catch {}
   }, [photos, layout, photoAreaHeight, font, fontSize, letterText, addressId])
 
@@ -414,6 +417,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
             : <>
                 <span style={{ fontSize: 24, color: 'var(--color-mauve)', lineHeight: 1, fontWeight: 300 }}>+</span>
                 <span style={{ fontSize: 9, color: 'var(--color-charcoal-light)', fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase' }}>{photos.length === 0 ? 'Add photos' : 'Add more'}</span>
+                <span style={{ fontSize: 8, color: 'var(--color-charcoal-light)', opacity: 0.7 }}>up to 8</span>
               </>}
         </button>
 
@@ -484,15 +488,20 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         </div>
       </div>
       <div>
-        <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-charcoal-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Size</p>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {(['small', 'medium', 'large'] as FontSize[]).map(s => (
-            <button key={s} onClick={() => setFontSize(s)}
-              style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: `1px solid ${fontSize === s ? 'var(--color-mauve)' : '#e5e7eb'}`, backgroundColor: fontSize === s ? 'var(--color-blush)' : 'white', color: fontSize === s ? 'var(--color-mauve)' : 'var(--color-charcoal)', fontSize: 12, cursor: 'pointer', textTransform: 'capitalize' }}>
-              {s}
-            </button>
-          ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-charcoal-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Size</p>
+          <span style={{ fontSize: 11, color: 'var(--color-mauve)', fontWeight: 600, textTransform: 'capitalize' }}>{fontSize}</span>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: 'var(--color-charcoal-light)', lineHeight: 1, userSelect: 'none' }}>A</span>
+          <input type="range" min="1" max="3" step="1"
+            value={fontSize === 'small' ? 1 : fontSize === 'large' ? 3 : 2}
+            onChange={e => setFontSize((['small', 'medium', 'large'] as FontSize[])[parseInt(e.target.value) - 1])}
+            style={{ flex: 1, accentColor: 'var(--color-mauve)', cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: 18, color: 'var(--color-charcoal-light)', lineHeight: 1, userSelect: 'none' }}>A</span>
+        </div>
+        <p style={{ fontSize: 9, color: 'var(--color-charcoal-light)', textAlign: 'center', marginTop: 3 }}>Min readable size · drag to adjust</p>
       </div>
     </div>
   )
@@ -545,7 +554,10 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         {/* Compact nav */}
         <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', height: 50, flexShrink: 0, backgroundColor: 'white', borderBottom: '1px solid var(--color-blush-dark)', zIndex: 10 }}>
           <Link href="/dashboard" style={{ fontSize: 13, color: 'var(--color-charcoal-light)', textDecoration: 'none' }}>← Back</Link>
-          <PreciousPostLogo size="sm" />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <PreciousPostLogo size="sm" />
+            {lastSaved && <span style={{ fontSize: 9, color: '#b0b8c1', letterSpacing: '0.03em', marginTop: 1 }}>✓ Draft saved</span>}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {/* Undo */}
             {prevPhotos !== null && (
@@ -661,7 +673,10 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--color-blush)' }}>
       <nav className="bg-white border-b px-4 py-3 shrink-0" style={{ borderColor: 'var(--color-blush-dark)' }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <PreciousPostLogo size="sm" />
+          <div className="flex flex-col items-start">
+            <PreciousPostLogo size="sm" />
+            {lastSaved && <span style={{ fontSize: 10, color: '#b0b8c1', letterSpacing: '0.03em', marginTop: 2 }}>✓ Draft saved</span>}
+          </div>
           <div className="flex items-center gap-2">
             <Link href="/dashboard" className="text-sm px-3 py-2 rounded-full border transition-colors" style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal-light)', textDecoration: 'none' }}>← Dashboard</Link>
             {prevPhotos !== null && (
@@ -732,15 +747,18 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
               </div>
             </Section>
 
-            <Section title="Font size">
-              <div className="grid grid-cols-3 gap-2">
-                {(['small', 'medium', 'large'] as FontSize[]).map(s => (
-                  <button key={s} onClick={() => setFontSize(s)} className="py-2 rounded-xl border text-xs capitalize transition-colors"
-                    style={{ borderColor: fontSize === s ? 'var(--color-mauve)' : '#e5e7eb', backgroundColor: fontSize === s ? 'var(--color-blush)' : 'white', color: fontSize === s ? 'var(--color-mauve)' : 'var(--color-charcoal)' }}>
-                    {s}
-                  </button>
-                ))}
+            <Section title={`Font size — ${fontSize}`}>
+              <div className="flex items-center gap-3">
+                <span style={{ fontSize: 11, color: 'var(--color-charcoal-light)', userSelect: 'none' }}>A</span>
+                <input type="range" min="1" max="3" step="1"
+                  value={fontSize === 'small' ? 1 : fontSize === 'large' ? 3 : 2}
+                  onChange={e => setFontSize((['small', 'medium', 'large'] as FontSize[])[parseInt(e.target.value) - 1])}
+                  className="flex-1"
+                  style={{ accentColor: 'var(--color-mauve)', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 18, color: 'var(--color-charcoal-light)', userSelect: 'none' }}>A</span>
               </div>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-charcoal-light)' }}>Minimum kept readable for print</p>
             </Section>
 
             <Section title={`Your letter (${letterText.length}/${MAX_CHARS})`}>
@@ -804,7 +822,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
               <button onClick={() => open()} disabled={photos.length >= MAX_PHOTOS || uploadingPhotos}
                 style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 10, border: '2px dashed var(--color-blush-dark)', backgroundColor: 'var(--color-blush)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: photos.length >= MAX_PHOTOS ? 'not-allowed' : 'pointer', opacity: photos.length >= MAX_PHOTOS ? 0.4 : 1 }}>
                 {uploadingPhotos ? <span style={{ fontSize: 10, color: 'var(--color-charcoal-light)' }}>…</span>
-                  : <><span style={{ fontSize: 22, color: 'var(--color-mauve)', lineHeight: 1, fontWeight: 300 }}>+</span><span style={{ fontSize: 9, color: 'var(--color-charcoal-light)', fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase' }}>{photos.length === 0 ? 'Add photos' : 'Add more'}</span></>}
+                  : <><span style={{ fontSize: 22, color: 'var(--color-mauve)', lineHeight: 1, fontWeight: 300 }}>+</span><span style={{ fontSize: 9, color: 'var(--color-charcoal-light)', fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase' }}>{photos.length === 0 ? 'Add photos' : 'Add more'}</span><span style={{ fontSize: 8, color: 'var(--color-charcoal-light)', opacity: 0.7 }}>up to 8</span></>}
               </button>
               {photos.length > 0 && <div style={{ width: 1, height: 56, backgroundColor: 'var(--color-blush-dark)', flexShrink: 0 }} />}
               {photos.map((photo, i) => (
