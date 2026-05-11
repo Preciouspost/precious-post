@@ -55,7 +55,9 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
   // fontSize is now a number (12–18); guard against legacy string values in old drafts/DB rows
   const fontSizePx = typeof fontSize === 'number' ? fontSize
     : fontSize === 'small' ? 12 : fontSize === 'large' ? 18 : 15
-  const lineHeight = 1.65 + (fontSizePx - 12) * (0.2 / 6)
+  const lineHeight = font === 'handwritten'
+    ? 1.3 + (fontSizePx - 12) * (0.1 / 6)
+    : 1.65 + (fontSizePx - 12) * (0.2 / 6)
 
   const today = format(new Date(), 'MMMM d, yyyy')
 
