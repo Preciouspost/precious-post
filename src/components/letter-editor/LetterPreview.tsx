@@ -56,7 +56,7 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
   const fontSizePx = typeof fontSize === 'number' ? fontSize
     : fontSize === 'small' ? 12 : fontSize === 'large' ? 18 : 15
   const lineHeight = font === 'handwritten'
-    ? 1.3 + (fontSizePx - 12) * (0.1 / 6)
+    ? 1
     : 1.65 + (fontSizePx - 12) * (0.2 / 6)
 
   const today = format(new Date(), 'MMMM d, yyyy')
