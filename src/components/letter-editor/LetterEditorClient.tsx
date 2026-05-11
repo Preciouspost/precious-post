@@ -277,6 +277,15 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     }
   }
 
+  // Handwritten (Caveat) has a smaller x-height — minimum readable size is 16px
+  const HANDWRITTEN_MIN = 16
+  const sliderMin = font === 'handwritten' ? HANDWRITTEN_MIN : 12
+
+  function handleFontChange(f: FontFamily) {
+    setFont(f)
+    if (f === 'handwritten' && fontSize < HANDWRITTEN_MIN) setFontSize(HANDWRITTEN_MIN)
+  }
+
   function autofill() {
     setPhotos(prev => [...prev].sort((a, b) => {
       const tsA = parseInt(a.id.split('/')[1]?.split('-')[0] ?? '0', 10)
@@ -485,7 +494,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-charcoal-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Style</p>
         <div style={{ display: 'flex', gap: 6 }}>
           {(['handwritten', 'serif', 'sans'] as FontFamily[]).map(f => (
-            <button key={f} onClick={() => setFont(f)}
+            <button key={f} onClick={() => handleFontChange(f)}
               style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: `1px solid ${font === f ? 'var(--color-mauve)' : '#e5e7eb'}`, backgroundColor: font === f ? 'var(--color-blush)' : 'white', color: font === f ? 'var(--color-mauve)' : 'var(--color-charcoal)', fontSize: 12, cursor: 'pointer', fontFamily: f === 'handwritten' ? "'Caveat', cursive" : f === 'serif' ? "'Playfair Display', serif" : 'system-ui' }}>
               {f === 'handwritten' ? 'Handwritten' : f === 'serif' ? 'Serif' : 'Sans'}
             </button>
@@ -499,7 +508,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--color-charcoal-light)', lineHeight: 1, userSelect: 'none' }}>A</span>
-          <input type="range" min="12" max="18" step="1"
+          <input type="range" min={sliderMin} max="18" step="1"
             value={fontSize}
             onChange={e => setFontSize(parseInt(e.target.value))}
             style={{ flex: 1, accentColor: 'var(--color-mauve)', cursor: 'pointer' }}
@@ -744,7 +753,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
             <Section title="Font style">
               <div className="grid grid-cols-3 gap-2">
                 {(['handwritten', 'serif', 'sans'] as FontFamily[]).map(f => (
-                  <button key={f} onClick={() => setFont(f)} className="py-2 px-1 rounded-xl border text-xs capitalize transition-colors"
+                  <button key={f} onClick={() => handleFontChange(f)} className="py-2 px-1 rounded-xl border text-xs capitalize transition-colors"
                     style={{ borderColor: font === f ? 'var(--color-mauve)' : '#e5e7eb', backgroundColor: font === f ? 'var(--color-blush)' : 'white', color: font === f ? 'var(--color-mauve)' : 'var(--color-charcoal)', fontFamily: f === 'handwritten' ? "'Caveat', cursive" : f === 'serif' ? "'Playfair Display', serif" : 'system-ui' }}>
                     {f === 'handwritten' ? 'Handwritten' : f === 'serif' ? 'Serif' : 'Sans'}
                   </button>
@@ -755,7 +764,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
             <Section title={`Font size — ${fontSize}px`}>
               <div className="flex items-center gap-3">
                 <span style={{ fontSize: 11, color: 'var(--color-charcoal-light)', userSelect: 'none' }}>A</span>
-                <input type="range" min="12" max="18" step="1"
+                <input type="range" min={sliderMin} max="18" step="1"
                   value={fontSize}
                   onChange={e => setFontSize(parseInt(e.target.value))}
                   className="flex-1"
