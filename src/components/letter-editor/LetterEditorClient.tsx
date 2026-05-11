@@ -317,12 +317,25 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data: letter, error } = await supabase.from('letters').insert({
+    const insertPayload = {
       user_id: user.id, address_id: addressId, photos, layout,
-      photo_area_height: photoAreaHeight, font, font_size: fontSize,
+      photo_area_height: photoAreaHeight, font, font_size: fontSize as number | string,
       letter_text: letterText, status: 'submitted',
       month_year: getCurrentMonthYear(), submitted_at: new Date().toISOString(),
-    }).select().single()
+    }
+    let { data: letter, error } = await supabase.from('letters').insert(insertPayload).select().single()
+
+    // If the legacy text check constraint is still in place, retry with a mapped string.
+    // Permanent fix: run the migration SQL in Supabase SQL editor:
+    //   ALTER TABLE public.letters DROP CONSTRAINT IF EXISTS letters_font_size_check;
+    //   ALTER TABLE public.letters ALTER COLUMN font_size TYPE smallint
+    //     USING (CASE font_size WHEN 'small' THEN 12 WHEN 'large' THEN 18 ELSE 15 END)::smallint;
+    if (error?.message?.includes('letters_font_size_check')) {
+      const fallbackSize = fontSize <= 13 ? 'small' : fontSize >= 17 ? 'large' : 'medium'
+      ;({ data: letter, error } = await supabase.from('letters')
+        .insert({ ...insertPayload, font_size: fallbackSize }).select().single())
+    }
+
     if (error) { alert('Error submitting: ' + error.message); setSubmitting(false); return }
     await supabase.rpc('increment_usage', { p_user_id: user.id, p_month_year: monthYear })
     await fetch('/api/sms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'submitted', letterId: letter.id }) })
