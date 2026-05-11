@@ -84,7 +84,12 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   const [layout, setLayout] = useState<LayoutId>(savedDraft?.layout ?? 'hero-2-below')
   const [photoAreaHeight, setPhotoAreaHeight] = useState(savedDraft?.photoAreaHeight ?? 45)
   const [font, setFont] = useState<FontFamily>(savedDraft?.font ?? 'serif')
-  const [fontSize, setFontSize] = useState<FontSize>(savedDraft?.fontSize ?? 'medium')
+  // Migrate legacy string values from old localStorage drafts
+  const savedFontSize = savedDraft?.fontSize
+  const [fontSize, setFontSize] = useState<FontSize>(
+    typeof savedFontSize === 'number' ? savedFontSize
+    : savedFontSize === 'small' ? 12 : savedFontSize === 'large' ? 18 : 15
+  )
   const [letterText, setLetterText] = useState(savedDraft?.letterText ?? '')
   const [addressId, setAddressId] = useState<string>(savedDraft?.addressId ?? addresses[0]?.id ?? '')
   const [showAddAddress, setShowAddAddress] = useState(false)
@@ -324,7 +329,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     if (!confirm('Clear everything and start fresh?')) return
     try { localStorage.removeItem(draftKey(profile.user_id)) } catch {}
     setPhotos([]); setLetterText(''); setAddressId(''); setLayout('hero-2-below')
-    setPhotoAreaHeight(45); setFont('serif'); setFontSize('medium')
+    setPhotoAreaHeight(45); setFont('serif'); setFontSize(15)
     setPrevPhotos(null); setSelectedSlot(null); setSwapMode(false)
   }
 
@@ -490,18 +495,18 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-charcoal-light)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Size</p>
-          <span style={{ fontSize: 11, color: 'var(--color-mauve)', fontWeight: 600, textTransform: 'capitalize' }}>{fontSize}</span>
+          <span style={{ fontSize: 11, color: 'var(--color-mauve)', fontWeight: 600 }}>{fontSize}px</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--color-charcoal-light)', lineHeight: 1, userSelect: 'none' }}>A</span>
-          <input type="range" min="1" max="3" step="1"
-            value={fontSize === 'small' ? 1 : fontSize === 'large' ? 3 : 2}
-            onChange={e => setFontSize((['small', 'medium', 'large'] as FontSize[])[parseInt(e.target.value) - 1])}
+          <input type="range" min="12" max="18" step="1"
+            value={fontSize}
+            onChange={e => setFontSize(parseInt(e.target.value))}
             style={{ flex: 1, accentColor: 'var(--color-mauve)', cursor: 'pointer' }}
           />
           <span style={{ fontSize: 18, color: 'var(--color-charcoal-light)', lineHeight: 1, userSelect: 'none' }}>A</span>
         </div>
-        <p style={{ fontSize: 9, color: 'var(--color-charcoal-light)', textAlign: 'center', marginTop: 3 }}>Min readable size · drag to adjust</p>
+        <p style={{ fontSize: 9, color: 'var(--color-charcoal-light)', textAlign: 'center', marginTop: 3 }}>Drag to adjust · min readable for print</p>
       </div>
     </div>
   )
@@ -747,12 +752,12 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
               </div>
             </Section>
 
-            <Section title={`Font size — ${fontSize}`}>
+            <Section title={`Font size — ${fontSize}px`}>
               <div className="flex items-center gap-3">
                 <span style={{ fontSize: 11, color: 'var(--color-charcoal-light)', userSelect: 'none' }}>A</span>
-                <input type="range" min="1" max="3" step="1"
-                  value={fontSize === 'small' ? 1 : fontSize === 'large' ? 3 : 2}
-                  onChange={e => setFontSize((['small', 'medium', 'large'] as FontSize[])[parseInt(e.target.value) - 1])}
+                <input type="range" min="12" max="18" step="1"
+                  value={fontSize}
+                  onChange={e => setFontSize(parseInt(e.target.value))}
                   className="flex-1"
                   style={{ accentColor: 'var(--color-mauve)', cursor: 'pointer' }}
                 />

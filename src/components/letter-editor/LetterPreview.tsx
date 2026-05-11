@@ -52,8 +52,10 @@ export const LetterPreview = forwardRef<HTMLDivElement, Props>(function LetterPr
     : font === 'serif' ? "'Playfair Display', Georgia, serif"
     : "'Inter', system-ui, sans-serif"
 
-  const fontSizePx = fontSize === 'small' ? 12 : fontSize === 'large' ? 18 : 15
-  const lineHeight = fontSize === 'small' ? 1.65 : fontSize === 'large' ? 1.85 : 1.75
+  // fontSize is now a number (12–18); guard against legacy string values in old drafts/DB rows
+  const fontSizePx = typeof fontSize === 'number' ? fontSize
+    : fontSize === 'small' ? 12 : fontSize === 'large' ? 18 : 15
+  const lineHeight = 1.65 + (fontSizePx - 12) * (0.2 / 6)
 
   const today = format(new Date(), 'MMMM d, yyyy')
 

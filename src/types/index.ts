@@ -1,7 +1,7 @@
 export type Plan = 'single' | 'triple'
 export type LetterStatus = 'draft' | 'submitted' | 'printed' | 'mailed'
 export type FontFamily = 'handwritten' | 'serif' | 'sans'
-export type FontSize = 'small' | 'medium' | 'large'
+export type FontSize = number
 export type LayoutId = string
 
 export interface Profile {
