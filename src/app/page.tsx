@@ -3,6 +3,7 @@ import { MarketingNav } from '@/components/MarketingNav'
 import { MarketingFooter } from '@/components/MarketingFooter'
 import { createClient } from '@/lib/supabase/server'
 import { PlanCardClient } from '@/components/PlanCardClient'
+import { Camera, Printer, Mail } from 'lucide-react'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -146,13 +147,13 @@ export default async function HomePage() {
           </h2>
           <div className="grid sm:grid-cols-3 gap-10 text-center">
             {[
-              { step: '1', icon: '📸', title: 'Design Your Letter', desc: 'Upload photos, pick a layout, and write your message in minutes.' },
-              { step: '2', icon: '🖨️', title: 'We Print & Mail It', desc: 'We personally print on 8.5×11 and mail it to your recipient.' },
-              { step: '3', icon: '💌', title: 'They Receive It', desc: 'Your loved one gets a real, tangible piece of you in their mailbox.' },
+              { step: '1', Icon: Camera, title: 'Design Your Letter', desc: 'Upload photos, pick a layout, and write your message in minutes.' },
+              { step: '2', Icon: Printer, title: 'We Print & Mail It', desc: 'We personally print on 8.5×11 and mail it to your recipient.' },
+              { step: '3', Icon: Mail, title: 'They Receive It', desc: 'Your loved one gets a real, tangible piece of you in their mailbox.' },
             ].map(item => (
               <div key={item.step} className="flex flex-col items-center gap-3">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl" style={{ backgroundColor: 'var(--color-blush)' }}>
-                  {item.icon}
+                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-blush)' }}>
+                  <item.Icon size={24} style={{ color: 'var(--color-mauve)' }} />
                 </div>
                 <h3 className="font-semibold text-lg" style={{ color: 'var(--color-charcoal)' }}>{item.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--color-charcoal-light)' }}>{item.desc}</p>
