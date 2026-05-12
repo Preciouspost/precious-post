@@ -60,12 +60,12 @@ export default async function HomePage() {
           <div className="grid md:grid-cols-2 gap-8 items-start justify-items-center">
             {/* Letter 1 */}
             <div className="w-full max-w-sm">
-              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
+              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0', height: 520 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/example-letter-1.jpg"
                   alt="Example Precious Post letter — traveler writing to grandma"
-                  style={{ width: '100%', display: 'block' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }}
                 />
               </div>
               <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
@@ -74,12 +74,12 @@ export default async function HomePage() {
             </div>
             {/* Letter 2 */}
             <div className="w-full max-w-sm">
-              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
+              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0', height: 520 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/example-letter-2.jpg"
                   alt="Example Precious Post letter — mom writing to out-of-state parents"
-                  style={{ width: '100%', display: 'block' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }}
                 />
               </div>
               <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
