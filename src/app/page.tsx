@@ -73,7 +73,7 @@ export default async function HomePage() {
               </p>
             </div>
             {/* Letter 2 */}
-            <div className="w-full max-w-sm md:mt-10">
+            <div className="w-full max-w-sm">
               <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
