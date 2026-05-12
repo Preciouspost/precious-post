@@ -45,6 +45,51 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Example letters */}
+      <section className="py-20 px-6 bg-white overflow-hidden">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-sm font-medium tracking-widest uppercase text-center mb-3" style={{ color: 'var(--color-mauve)' }}>
+            Real letters, really mailed
+          </p>
+          <h2 className="text-3xl font-bold text-center mb-4" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
+            This is what arrives in the mailbox
+          </h2>
+          <p className="text-center text-sm mb-14 max-w-lg mx-auto" style={{ color: 'var(--color-charcoal-light)' }}>
+            Printed on quality paper, sealed and mailed — every single month.
+          </p>
+          <div className="grid md:grid-cols-2 gap-8 items-start justify-items-center">
+            {/* Letter 1 */}
+            <div className="w-full max-w-sm">
+              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/example-letter-1.jpg"
+                  alt="Example Precious Post letter — traveler writing to grandma"
+                  style={{ width: '100%', display: 'block' }}
+                />
+              </div>
+              <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
+                Emma, 26, writing to her grandma from Lisbon
+              </p>
+            </div>
+            {/* Letter 2 */}
+            <div className="w-full max-w-sm md:mt-10">
+              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/example-letter-2.jpg"
+                  alt="Example Precious Post letter — mom writing to out-of-state parents"
+                  style={{ width: '100%', display: 'block' }}
+                />
+              </div>
+              <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
+                Sarah, writing to her parents after the kids fell asleep
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Plans */}
       <section className="py-20 px-6 bg-white">
         <div className="max-w-3xl mx-auto">
