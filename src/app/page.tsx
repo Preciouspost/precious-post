@@ -49,13 +49,13 @@ export default async function HomePage() {
       <section className="py-20 px-6 bg-white overflow-hidden">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-medium tracking-widest uppercase text-center mb-3" style={{ color: 'var(--color-mauve)' }}>
-            Real letters, really mailed
+            Example letters
           </p>
           <h2 className="text-3xl font-bold text-center mb-4" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
             This is what arrives in the mailbox
           </h2>
           <p className="text-center text-sm mb-14 max-w-lg mx-auto" style={{ color: 'var(--color-charcoal-light)' }}>
-            Printed on quality paper, sealed and mailed — every single month.
+            Printed on quality paper, sealed and mailed — every single month. These are sample letters to show you the format.
           </p>
           <div className="grid md:grid-cols-2 gap-8 items-start justify-items-center">
             {/* Letter 1 */}
@@ -69,7 +69,7 @@ export default async function HomePage() {
                 />
               </div>
               <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
-                Emma, 26, writing to her grandma from Lisbon
+                Sample letter — Emma, traveling abroad, writing to her grandma
               </p>
             </div>
             {/* Letter 2 */}
@@ -83,7 +83,7 @@ export default async function HomePage() {
                 />
               </div>
               <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
-                Sarah, writing to her parents after the kids fell asleep
+                Sample letter — Sarah, writing to her out-of-state parents
               </p>
             </div>
           </div>
