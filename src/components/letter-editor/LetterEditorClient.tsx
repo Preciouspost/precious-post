@@ -21,7 +21,6 @@ interface Props {
 
 const MAX_PHOTOS = 8
 const MAX_CHARS = 2500
-const PREVIEW_SCALE = 0.48
 const draftKey = (userId: string) => `precious-post-draft-${userId}`
 
 type MobileTab = 'photos' | 'layout' | 'font' | 'letter' | 'to'
@@ -109,6 +108,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   // Mobile state
   const [isMobile, setIsMobile] = useState(false)
   const [mobileScale, setMobileScale] = useState(0.45)
+  const [desktopScale, setDesktopScale] = useState(0.55)
   const [mobileTab, setMobileTab] = useState<MobileTab>('to')
 
   // Pixory-style photo editing
@@ -139,6 +139,12 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         // nav=50, bottom sheet content≈160, tab bar=54, padding=16
         const scaleByHeight = (window.innerHeight - 50 - 160 - 54 - 16) / 1056
         setMobileScale(Math.min(scaleByWidth, Math.max(0.28, scaleByHeight)))
+      } else {
+        // sidebar=300, horizontal padding=48, buffer=16
+        const scaleByWidth = (window.innerWidth - 300 - 48 - 16) / 816
+        // nav≈61, photo tray≈96, vertical padding=32, label=28, buffer=16
+        const scaleByHeight = (window.innerHeight - 61 - 96 - 32 - 28 - 16) / 1056
+        setDesktopScale(Math.min(scaleByWidth, scaleByHeight, 0.72))
       }
     }
     update()
@@ -814,12 +820,12 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
               Live preview — 8.5 × 11&quot; letter
               {selectedSlot !== null && <span style={{ color: 'var(--color-mauve)', marginLeft: 8 }}>Drag to pan · click elsewhere to deselect</span>}
             </p>
-            <div style={{ position: 'relative', width: 816 * PREVIEW_SCALE, height: 1056 * PREVIEW_SCALE, boxShadow: '0 4px 32px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+            <div style={{ position: 'relative', width: 816 * desktopScale, height: 1056 * desktopScale, boxShadow: '0 4px 32px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
               <LetterPreview
                 ref={previewRef}
                 layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100}
                 font={font} fontSize={fontSize} letterText={letterText}
-                senderName={profile.name} address={selectedAddress} scale={PREVIEW_SCALE}
+                senderName={profile.name} address={selectedAddress} scale={desktopScale}
                 onPanPhoto={panPhoto}
                 onResizePhotoArea={isSideBySide ? undefined : setPhotoAreaHeight}
                 onSlotClick={handleSlotClick}
@@ -936,8 +942,8 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
                 <h2 style={{ fontFamily: 'var(--font-playfair)', fontSize: 20, fontWeight: 700, color: 'var(--color-charcoal)', marginBottom: 6 }}>Review Your Letter</h2>
                 <p style={{ fontSize: 13, color: 'var(--color-charcoal-light)' }}>This is exactly what will be printed and mailed to <strong>{selectedAddress?.name}</strong>.</p>
               </div>
-              <div style={{ width: isMobile ? 816 * 0.42 : 816 * 0.62, height: isMobile ? 1056 * 0.42 : 1056 * 0.62, boxShadow: '0 4px 32px rgba(0,0,0,0.15)', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
-                <LetterPreview layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100} font={font} fontSize={fontSize} letterText={letterText} senderName={profile.name} address={selectedAddress} scale={isMobile ? 0.42 : 0.62} />
+              <div style={{ width: isMobile ? 816 * 0.42 : 816 * desktopScale, height: isMobile ? 1056 * 0.42 : 1056 * desktopScale, boxShadow: '0 4px 32px rgba(0,0,0,0.15)', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+                <LetterPreview layout={layout} photos={photos} photoAreaHeight={photoAreaHeight} photoAreaWidth={100} font={font} fontSize={fontSize} letterText={letterText} senderName={profile.name} address={selectedAddress} scale={isMobile ? 0.42 : desktopScale} />
               </div>
               <div style={{ display: 'flex', gap: 10, width: '100%' }}>
                 <button onClick={() => setShowReview(false)} style={{ flex: 1, padding: '12px 0', borderRadius: 50, fontSize: 14, border: '1px solid #e5e7eb', color: 'var(--color-charcoal)', backgroundColor: 'white', cursor: 'pointer' }}>← Edit</button>
