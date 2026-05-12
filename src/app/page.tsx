@@ -69,7 +69,7 @@ export default async function HomePage() {
                 />
               </div>
               <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
-                Sample letter — Emma, traveling abroad, writing to her grandma
+                Sample letter — Alex, traveling abroad, writing to her grandma
               </p>
             </div>
             {/* Letter 2 */}
@@ -83,7 +83,7 @@ export default async function HomePage() {
                 />
               </div>
               <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
-                Sample letter — Sarah, writing to her out-of-state parents
+                Sample letter — Emma, writing to her out-of-state parents
               </p>
             </div>
           </div>
