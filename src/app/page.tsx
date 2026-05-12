@@ -46,7 +46,7 @@ export default async function HomePage() {
       </section>
 
       {/* Example letters */}
-      <section className="py-20 px-6 bg-white overflow-hidden">
+      <section className="pt-20 pb-10 px-6 bg-white overflow-hidden">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-medium tracking-widest uppercase text-center mb-3" style={{ color: 'var(--color-mauve)' }}>
             Example letters
