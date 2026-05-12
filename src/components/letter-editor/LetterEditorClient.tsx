@@ -527,7 +527,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--color-charcoal-light)', lineHeight: 1, userSelect: 'none' }}>A</span>
-          <input type="range" min={sliderMin} max="18" step="1"
+          <input type="range" min={sliderMin} max="25" step="1"
             value={fontSize}
             onChange={e => setFontSize(parseInt(e.target.value))}
             style={{ flex: 1, accentColor: 'var(--color-mauve)', cursor: 'pointer' }}
@@ -783,7 +783,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
             <Section title={`Font size — ${fontSize}px`}>
               <div className="flex items-center gap-3">
                 <span style={{ fontSize: 11, color: 'var(--color-charcoal-light)', userSelect: 'none' }}>A</span>
-                <input type="range" min={sliderMin} max="18" step="1"
+                <input type="range" min={sliderMin} max="25" step="1"
                   value={fontSize}
                   onChange={e => setFontSize(parseInt(e.target.value))}
                   className="flex-1"
