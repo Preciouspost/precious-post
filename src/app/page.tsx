@@ -46,51 +46,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Example letters */}
-      <section className="pt-20 pb-10 px-6 bg-white overflow-hidden">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-sm font-medium tracking-widest uppercase text-center mb-3" style={{ color: 'var(--color-mauve)' }}>
-            Example letters
-          </p>
-          <h2 className="text-3xl font-bold text-center mb-4" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
-            This is what arrives in the mailbox
-          </h2>
-          <p className="text-center text-sm mb-14 max-w-lg mx-auto" style={{ color: 'var(--color-charcoal-light)' }}>
-            Printed on quality paper, sealed and mailed — every single month. These are sample letters to show you the format.
-          </p>
-          <div className="grid md:grid-cols-2 gap-8 items-start justify-items-center">
-            {/* Letter 1 */}
-            <div className="w-full max-w-sm">
-              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/example-letter-1.jpg"
-                  alt="Example Precious Post letter — traveler writing to grandma"
-                  style={{ width: '100%', height: 'auto', display: 'block' }}
-                />
-              </div>
-              <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
-                Sample letter — Ashley, traveling abroad, writing to her grandma
-              </p>
-            </div>
-            {/* Letter 2 */}
-            <div className="w-full max-w-sm">
-              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/example-letter-2.jpg"
-                  alt="Example Precious Post letter — mom writing to out-of-state parents"
-                  style={{ width: '100%', height: 'auto', display: 'block' }}
-                />
-              </div>
-              <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
-                Sample letter — Emma, writing to her out-of-state parents
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Demo Video */}
       <section className="py-20 px-6 bg-white">
         <div className="max-w-3xl mx-auto">
@@ -142,6 +97,51 @@ export default async function HomePage() {
               features={['3 letters per month', 'Up to 3 recipients', 'Up to 8 photos each', 'Printed & mailed for you', 'Monthly reminder text', 'No obligations, cancel anytime']}
               userPlan={userPlan}
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Example letters */}
+      <section className="pt-20 pb-10 px-6 bg-white overflow-hidden">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-sm font-medium tracking-widest uppercase text-center mb-3" style={{ color: 'var(--color-mauve)' }}>
+            Example letters
+          </p>
+          <h2 className="text-3xl font-bold text-center mb-4" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
+            This is what arrives in the mailbox
+          </h2>
+          <p className="text-center text-sm mb-14 max-w-lg mx-auto" style={{ color: 'var(--color-charcoal-light)' }}>
+            Printed on quality paper, sealed and mailed — every single month. These are sample letters to show you the format.
+          </p>
+          <div className="grid md:grid-cols-2 gap-8 items-start justify-items-center">
+            {/* Letter 1 */}
+            <div className="w-full max-w-sm">
+              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/example-letter-1.jpg"
+                  alt="Example Precious Post letter — traveler writing to grandma"
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
+                />
+              </div>
+              <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
+                Sample letter — Ashley, traveling abroad, writing to her grandma
+              </p>
+            </div>
+            {/* Letter 2 */}
+            <div className="w-full max-w-sm">
+              <div className="rounded-2xl overflow-hidden shadow-xl" style={{ border: '1px solid #e8d8d0' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/example-letter-2.jpg"
+                  alt="Example Precious Post letter — mom writing to out-of-state parents"
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
+                />
+              </div>
+              <p className="text-xs text-center mt-3 italic" style={{ color: 'var(--color-charcoal-light)' }}>
+                Sample letter — Emma, writing to her out-of-state parents
+              </p>
+            </div>
           </div>
         </div>
       </section>
