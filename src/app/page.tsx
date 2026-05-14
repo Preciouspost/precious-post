@@ -186,6 +186,7 @@ export default async function HomePage() {
               controls
               playsInline
               preload="metadata"
+              poster="/Cover Photo Demo Video.png"
               style={{ width: '100%', display: 'block' }}
             >
               <source src="/Template Video Demo.mp4" type="video/mp4" />
