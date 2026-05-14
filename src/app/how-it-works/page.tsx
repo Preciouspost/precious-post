@@ -107,6 +107,33 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
+
+      {/* Demo Video */}
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-sm font-medium tracking-widest uppercase text-center mb-3" style={{ color: 'var(--color-mauve)' }}>
+            See it in action
+          </p>
+          <h2 className="text-3xl font-bold text-center mb-4" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
+            Make a letter in minutes
+          </h2>
+          <p className="text-center text-sm mb-10 max-w-lg mx-auto" style={{ color: 'var(--color-charcoal-light)' }}>
+            Upload your photos, write your message, and we handle the rest.
+          </p>
+          <div className="rounded-2xl overflow-hidden shadow-xl mx-auto" style={{ border: '1px solid #e8d8d0' }}>
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              poster="/Cover Photo Demo Video.png"
+              style={{ width: '100%', display: 'block' }}
+            >
+              <source src="/Template Video Demo.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+      </section>
+
       {/* Plans reminder */}
       <section className="py-16 px-6 text-center" style={{ backgroundColor: 'var(--color-blush)' }}>
         <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
