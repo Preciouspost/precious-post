@@ -89,13 +89,15 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
   // ── Date range filter ──────────────────────────────────────────────────────
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [appliedStart, setAppliedStart] = useState('')
+  const [appliedEnd, setAppliedEnd] = useState('')
 
   const filteredLetters = letters.filter(l => {
-    if (!startDate && !endDate) return true
+    if (!appliedStart && !appliedEnd) return true
     if (!l.submitted_at) return false
     const submitted = new Date(l.submitted_at)
-    if (startDate && submitted < new Date(startDate)) return false
-    if (endDate && submitted > new Date(endDate + 'T23:59:59')) return false
+    if (appliedStart && submitted < new Date(appliedStart)) return false
+    if (appliedEnd && submitted > new Date(appliedEnd + 'T23:59:59')) return false
     return true
   })
 
@@ -195,8 +197,8 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
 
   if (letters.length === 0) return null
 
-  const dateLabel = startDate || endDate
-    ? `${startDate || '…'} → ${endDate || '…'} (${filteredLetters.length} letter${filteredLetters.length !== 1 ? 's' : ''})`
+  const dateLabel = appliedStart || appliedEnd
+    ? `${appliedStart || '…'} → ${appliedEnd || '…'} (${filteredLetters.length} letter${filteredLetters.length !== 1 ? 's' : ''})`
     : `All ${letters.length} letter${letters.length !== 1 ? 's' : ''}`
 
   return (
