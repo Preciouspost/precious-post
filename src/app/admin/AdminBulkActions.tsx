@@ -86,25 +86,10 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
   const [croppedUrls, setCroppedUrls] = useState<string[]>([])
   const previewRef = useRef<HTMLDivElement>(null)
 
-  // ── Date range filter ──────────────────────────────────────────────────────
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [appliedStart, setAppliedStart] = useState('')
-  const [appliedEnd, setAppliedEnd] = useState('')
-
-  const filteredLetters = letters.filter(l => {
-    if (!appliedStart && !appliedEnd) return true
-    if (!l.submitted_at) return false
-    const submitted = new Date(l.submitted_at)
-    if (appliedStart && submitted < new Date(appliedStart)) return false
-    if (appliedEnd && submitted > new Date(appliedEnd + 'T23:59:59')) return false
-    return true
-  })
-
   // ── Download addresses as CSV ──────────────────────────────────────────────
   function downloadAddressCSV() {
     const header = ['Recipient Name', 'Address Line 1', 'Address Line 2', 'City', 'State', 'Zip', 'Sender Name', 'Sender Email']
-    const rows = filteredLetters
+    const rows = letters
       .filter(l => l.address)
       .map(l => [
         l.address!.name,
@@ -129,9 +114,9 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
 
   // ── Bulk PDF → ZIP ─────────────────────────────────────────────────────────
   async function downloadAllPDFs() {
-    if (filteredLetters.length === 0) return
+    if (letters.length === 0) return
     setBulkLoading(true)
-    setProgress({ current: 0, total: filteredLetters.length })
+    setProgress({ current: 0, total: letters.length })
 
     const [{ default: JSZip }, { default: html2canvas }, { default: jsPDF }] = await Promise.all([
       import('jszip'),
@@ -141,9 +126,9 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
 
     const zip = new JSZip()
 
-    for (let i = 0; i < filteredLetters.length; i++) {
-      const letter = filteredLetters[i]
-      setProgress({ current: i + 1, total: filteredLetters.length })
+    for (let i = 0; i < letters.length; i++) {
+      const letter = letters[i]
+      setProgress({ current: i + 1, total: letters.length })
 
       // Pre-crop photos
       const cropped = await preCropPhotos(letter, letter.layout)
@@ -197,47 +182,11 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
 
   if (letters.length === 0) return null
 
-  const dateLabel = appliedStart || appliedEnd
-    ? `${appliedStart || '…'} → ${appliedEnd || '…'} (${filteredLetters.length} letter${filteredLetters.length !== 1 ? 's' : ''})`
+    ? `${appliedStart || '…'} → ${appliedEnd || '…'} (${letters.length} letter${letters.length !== 1 ? 's' : ''})`
     : `All ${letters.length} letter${letters.length !== 1 ? 's' : ''}`
 
   return (
     <>
-      {/* Date range filter */}
-      <div className="flex flex-wrap items-center gap-3 mb-4 p-4 bg-white rounded-xl border" style={{ borderColor: '#e5e7eb' }}>
-        <span className="text-sm font-medium" style={{ color: 'var(--color-charcoal)' }}>Filter by date submitted:</span>
-        <div className="flex items-center gap-2">
-          <label className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>From</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={e => setStartDate(e.target.value)}
-            className="px-2 py-1 rounded-lg border text-sm outline-none"
-            style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal)' }}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs" style={{ color: 'var(--color-charcoal-light)' }}>To</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={e => setEndDate(e.target.value)}
-            className="px-2 py-1 rounded-lg border text-sm outline-none"
-            style={{ borderColor: '#e5e7eb', color: 'var(--color-charcoal)' }}
-          />
-        </div>
-        {(startDate || endDate) && (
-          <button
-            onClick={() => { setStartDate(''); setEndDate('') }}
-            className="text-xs underline"
-            style={{ color: 'var(--color-charcoal-light)' }}
-          >
-            Clear
-          </button>
-        )}
-        <span className="text-xs ml-auto" style={{ color: 'var(--color-charcoal-light)' }}>{dateLabel}</span>
-      </div>
-
       <div className="flex gap-2 mb-5 flex-wrap">
         {/* Addresses CSV */}
         <button

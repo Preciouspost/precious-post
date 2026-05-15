@@ -2,8 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { PreciousPostLogo } from '@/components/Logo'
 import { Letter } from '@/types'
-import { AdminLetterRow } from './AdminLetterRow'
-import { AdminBulkActions } from './AdminBulkActions'
+import { AdminLettersClient } from './AdminLettersClient'
 import { AdminSubscribersTab } from './AdminSubscribersTab'
 import { AdminWaitlistTab } from './AdminWaitlistTab'
 import { LogoutButton } from '@/components/LogoutButton'
@@ -95,20 +94,12 @@ export default async function AdminPage({
               ))}
             </div>
 
-            {letters && letters.length > 0 && (
-              <AdminBulkActions letters={letters} filterStatus={filterStatus} />
-            )}
-
             {!letters || letters.length === 0 ? (
               <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: 'white', border: '1px solid var(--color-blush-dark)' }}>
                 <p className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>No {filterStatus} letters.</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {letters.map(letter => (
-                  <AdminLetterRow key={letter.id} letter={letter} />
-                ))}
-              </div>
+              <AdminLettersClient letters={letters} filterStatus={filterStatus} />
             )}
           </>
         )}
