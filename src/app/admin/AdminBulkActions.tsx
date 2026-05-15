@@ -140,7 +140,7 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
 
     for (let i = 0; i < filteredLetters.length; i++) {
       const letter = filteredLetters[i]
-      setProgress({ current: i + 1, total: letters.length })
+      setProgress({ current: i + 1, total: filteredLetters.length })
 
       // Pre-crop photos
       const cropped = await preCropPhotos(letter, letter.layout)
@@ -170,7 +170,7 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
 
         const recipientSlug = (letter.address?.name ?? `letter-${i + 1}`)
           .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-        zip.file(`${recipientSlug}.pdf`, pdf.output('blob'))
+        zip.file(`${String(i + 1).padStart(2, '0')}-${recipientSlug}.pdf`, pdf.output('blob'))
       } catch (err) {
         console.error(`Failed to generate PDF for letter ${letter.id}:`, err)
       }
