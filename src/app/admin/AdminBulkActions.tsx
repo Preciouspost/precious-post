@@ -182,9 +182,6 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
 
   if (letters.length === 0) return null
 
-    ? `${appliedStart || '…'} → ${appliedEnd || '…'} (${letters.length} letter${letters.length !== 1 ? 's' : ''})`
-    : `All ${letters.length} letter${letters.length !== 1 ? 's' : ''}`
-
   return (
     <>
       <div className="flex gap-2 mb-5 flex-wrap">
