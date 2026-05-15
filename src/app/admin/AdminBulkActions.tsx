@@ -91,7 +91,8 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
   const [endDate, setEndDate] = useState('')
 
   const filteredLetters = letters.filter(l => {
-    if (!l.submitted_at) return true
+    if (!startDate && !endDate) return true
+    if (!l.submitted_at) return false
     const submitted = new Date(l.submitted_at)
     if (startDate && submitted < new Date(startDate)) return false
     if (endDate && submitted > new Date(endDate + 'T23:59:59')) return false
