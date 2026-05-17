@@ -88,16 +88,14 @@ export function AdminBulkActions({ letters, filterStatus }: Props) {
 
   // ── Download addresses as CSV ──────────────────────────────────────────────
   function downloadAddressCSV() {
-    const header = ['Recipient Name', 'Address Line 1', 'Address Line 2', 'City', 'State', 'Zip', 'Sender Name', 'Sender Email']
+    const header = ['Recipient Name', 'Address Line 1', 'Address Line 2', 'City, State Zip', 'Sender Name', 'Sender Email']
     const rows = letters
       .filter(l => l.address)
       .map(l => [
         l.address!.name,
         l.address!.address_line1,
         l.address!.address_line2 ?? '',
-        l.address!.city,
-        l.address!.state,
-        l.address!.zip,
+        `${l.address!.city}, ${l.address!.state} ${l.address!.zip}`,
         l.profile?.name ?? '',
         l.profile?.email ?? '',
       ])
