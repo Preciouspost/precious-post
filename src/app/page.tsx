@@ -109,7 +109,6 @@ export default async function HomePage() {
               </div>
               <p className="text-sm font-medium mb-1 opacity-80">One &amp; Done</p>
               <p className="text-4xl font-bold mb-1">$15<span className="text-base font-normal opacity-60"> one time</span></p>
-              <p className="text-sm mb-5 opacity-70">Send one beautiful letter, no strings attached.</p>
               <ul className="space-y-2 text-sm mb-6 flex-1">
                 {['1 letter, one time', '1 recipient', 'Up to 8 photos', 'Printed & mailed for you', 'No subscription'].map((f) => (
                   <li key={f} className="flex items-center gap-2">

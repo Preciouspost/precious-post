@@ -57,7 +57,6 @@ export function PlanCardClient({ name, planKey, price, description, features, fe
       </div>
       <p className="text-sm font-medium mb-1 opacity-80">{name}</p>
       <p className="text-4xl font-bold mb-1">{price}<span className="text-base font-normal opacity-60">/mo</span></p>
-      <p className="text-sm mb-5 opacity-70">{description}</p>
       <ul className="space-y-2 text-sm mb-6">
         {features.map(f => (
           <li key={f} className="flex items-center gap-2">
