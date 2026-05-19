@@ -102,6 +102,11 @@ export default async function HomePage() {
               className="rounded-2xl p-6 border flex flex-col"
               style={{ backgroundColor: 'white', borderColor: 'var(--color-blush-dark)', color: 'var(--color-charcoal)' }}
             >
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'var(--color-blush)', color: 'var(--color-mauve)' }}>
+                  One-time payment
+                </span>
+              </div>
               <p className="text-sm font-medium mb-1 opacity-80">One &amp; Done</p>
               <p className="text-4xl font-bold mb-1">$15<span className="text-base font-normal opacity-60"> one time</span></p>
               <p className="text-sm mb-5 opacity-70">Send one beautiful letter, no strings attached.</p>

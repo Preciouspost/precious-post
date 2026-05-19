@@ -50,6 +50,11 @@ export function PlanCardClient({ name, planKey, price, description, features, fe
         color: featured ? 'white' : 'var(--color-charcoal)',
       }}
     >
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: featured ? 'rgba(255,255,255,0.2)' : 'var(--color-blush)', color: featured ? 'white' : 'var(--color-mauve)' }}>
+          Monthly subscription
+        </span>
+      </div>
       <p className="text-sm font-medium mb-1 opacity-80">{name}</p>
       <p className="text-4xl font-bold mb-1">{price}<span className="text-base font-normal opacity-60">/mo</span></p>
       <p className="text-sm mb-5 opacity-70">{description}</p>
