@@ -1,4 +1,4 @@
-export type Plan = 'single' | 'triple'
+export type Plan = 'single' | 'triple' | 'one_time'
 export type LetterStatus = 'draft' | 'submitted' | 'printed' | 'mailed'
 export type FontFamily = 'handwritten' | 'serif' | 'sans'
 export type FontSize = number

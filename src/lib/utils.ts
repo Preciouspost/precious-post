@@ -17,6 +17,7 @@ export function formatMonthYear(monthYear: string): string {
 
 export function getMaxLetters(plan: string | null): number {
   if (plan === 'triple') return 3
+  if (!plan || plan === 'one_time') return 0
   return 1
 }
 
@@ -32,5 +33,11 @@ export const PLANS = {
     price: 32,
     letters: 3,
     description: '3 letters per month, up to 3 recipients',
+  },
+  one_time: {
+    name: 'One & Done',
+    price: 15,
+    letters: 0,
+    description: '1 letter, one time, no subscription',
   },
 }

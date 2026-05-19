@@ -22,8 +22,33 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session
     const userId = session.metadata?.user_id
     const plan = session.metadata?.plan as 'single' | 'triple'
+    const letterId = session.metadata?.letter_id
+    const sessionType = session.metadata?.type
     const subscriptionId = session.subscription as string
 
+    // Handle one-time letter purchase
+    if (sessionType === 'one_time_letter' && userId && letterId) {
+      // Only set plan to 'one_time' if user has no subscription plan yet
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('plan, phone, name')
+        .eq('user_id', userId)
+        .single()
+
+      if (!existingProfile?.plan || existingProfile.plan === 'one_time') {
+        await supabase.from('profiles').update({ plan: 'one_time' }).eq('user_id', userId)
+      }
+
+      // Submit the letter
+      await supabase.from('letters').update({
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+      }).eq('id', letterId)
+
+      return NextResponse.json({ received: true })
+    }
+
+    // Handle subscription checkout
     if (userId && plan) {
       // Check if this is an upgrade (user already has a different active plan)
       const { data: existingProfile } = await supabase
@@ -33,7 +58,7 @@ export async function POST(req: Request) {
         .single()
 
       const previousPlan = existingProfile?.plan
-      const isUpgrade = previousPlan && previousPlan !== plan
+      const isUpgrade = previousPlan && previousPlan !== plan && previousPlan !== 'one_time'
 
       await supabase.from('profiles').update({
         plan,
@@ -52,6 +77,14 @@ export async function POST(req: Request) {
 
       if (existingProfile?.phone && !isUpgrade) {
         await sendSMS(existingProfile.phone, SMS_TEMPLATES.welcome(existingProfile.name))
+      }
+
+      // If a letter_id was passed (user subscribed from the upsell modal), submit that letter
+      if (letterId) {
+        await supabase.from('letters').update({
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+        }).eq('id', letterId)
       }
     }
   }

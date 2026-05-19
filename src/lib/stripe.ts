@@ -15,3 +15,9 @@ export const PRICES = {
   single: () => process.env.STRIPE_SINGLE_PRICE_ID!,
   triple: () => process.env.STRIPE_TRIPLE_PRICE_ID!,
 }
+
+export const ONE_TIME_PRICE_DATA = {
+  currency: 'usd',
+  unit_amount: 1500,
+  product_data: { name: 'One & Done Letter' },
+}

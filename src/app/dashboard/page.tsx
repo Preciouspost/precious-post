@@ -5,7 +5,7 @@ import { AppNav } from '@/components/AppNav'
 import { formatMonthYear, getCurrentMonthYear, getMaxLetters, PLANS } from '@/lib/utils'
 import { Letter, Profile } from '@/types'
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ success?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ success?: string; submitted?: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -16,7 +16,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .eq('user_id', user.id)
     .single() as { data: Profile | null }
 
-  if (!profile?.plan) redirect('/select-plan')
+  // Allow null plan (One & Done users) and 'one_time' plan to access dashboard
 
   const monthYear = getCurrentMonthYear()
 
@@ -35,9 +35,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .limit(20) as { data: Letter[] | null }
 
   const usedCount = usage?.count ?? 0
-  const maxLetters = getMaxLetters(profile.plan)
+  const plan = profile?.plan ?? null
+  const maxLetters = getMaxLetters(plan)
   const params = await searchParams
   const justSubscribed = params.success === '1'
+  const justSubmitted = params.submitted === '1'
+
+  const isNoPlan = !plan || plan === 'one_time'
+  const isSingleAtLimit = plan === 'single' && usedCount >= 1
+  const planLabel = plan === 'single' ? PLANS.single.name
+    : plan === 'triple' ? PLANS.triple.name
+    : plan === 'one_time' ? 'One & Done'
+    : 'No plan'
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-blush)' }}>
@@ -46,51 +55,90 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <main className="max-w-4xl mx-auto px-4 py-8">
         {justSubscribed && (
           <div className="rounded-xl px-4 py-3 text-sm mb-6 text-white" style={{ backgroundColor: 'var(--color-mauve)' }}>
-            🎉 Welcome to Precious Post! Your subscription is active. Write your first letter below.
+            Welcome to Precious Post! Your subscription is active. Write your first letter below.
+          </div>
+        )}
+        {justSubmitted && (
+          <div className="rounded-xl px-4 py-3 text-sm mb-6 text-white" style={{ backgroundColor: 'var(--color-mauve)' }}>
+            Your letter has been submitted! Lauren will print and mail it within 2 business days.
           </div>
         )}
 
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--color-charcoal)' }}>
-            Hello, {(profile.name ?? 'there').split(' ')[0]} 👋
+            Hello, {(profile?.name ?? 'there').split(' ')[0]}
           </h1>
           <p className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>
-            {formatMonthYear(monthYear)} · {PLANS[profile.plan].name}
+            {formatMonthYear(monthYear)} · {planLabel}
           </p>
         </div>
 
-        {/* This month's usage */}
-        <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+        {/* One & Done / No plan: simple CTA card */}
+        {isNoPlan && (
+          <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--color-charcoal-light)' }}>Letters this month</p>
-              <p className="text-3xl font-bold" style={{ color: 'var(--color-charcoal)' }}>
-                {usedCount} <span className="text-base font-normal" style={{ color: 'var(--color-charcoal-light)' }}>/ {maxLetters}</span>
-              </p>
+              <p className="font-semibold text-base mb-0.5" style={{ color: 'var(--color-charcoal)' }}>Send a letter</p>
+              <p className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>Each letter is $15 · No subscription required</p>
             </div>
-            {usedCount < maxLetters ? (
-              <Link
-                href="/letters/new"
-                className="px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                style={{ backgroundColor: 'var(--color-mauve)' }}
-              >
-                + Start a new letter
-              </Link>
-            ) : (
-              <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: 'var(--color-blush)', color: 'var(--color-charcoal-light)' }}>
-                All letters sent ✓
-              </span>
+            <Link
+              href="/letters/new"
+              className="px-5 py-2.5 rounded-full text-sm font-semibold text-white whitespace-nowrap transition-opacity hover:opacity-90"
+              style={{ backgroundColor: 'var(--color-mauve)' }}
+            >
+              Start a new letter →
+            </Link>
+          </div>
+        )}
+
+        {/* Subscription plan: usage card */}
+        {!isNoPlan && (
+          <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--color-charcoal-light)' }}>Letters this month</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--color-charcoal)' }}>
+                  {usedCount} <span className="text-base font-normal" style={{ color: 'var(--color-charcoal-light)' }}>/ {maxLetters}</span>
+                </p>
+              </div>
+              {usedCount < maxLetters ? (
+                <Link
+                  href="/letters/new"
+                  className="px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: 'var(--color-mauve)' }}
+                >
+                  + Start a new letter
+                </Link>
+              ) : (
+                <span className="px-4 py-2 rounded-full text-sm" style={{ backgroundColor: 'var(--color-blush)', color: 'var(--color-charcoal-light)' }}>
+                  All letters sent ✓
+                </span>
+              )}
+            </div>
+            {/* Progress bar */}
+            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-blush)' }}>
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${Math.min((usedCount / maxLetters) * 100, 100)}%`, backgroundColor: 'var(--color-mauve)' }}
+              />
+            </div>
+            {/* Extra letter CTA for Single Post at limit */}
+            {isSingleAtLimit && (
+              <div className="mt-4 pt-4 border-t flex items-center justify-between" style={{ borderColor: '#f0e6e0' }}>
+                <p className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>
+                  Want to send an extra letter this month?
+                </p>
+                <Link
+                  href="/letters/new"
+                  className="text-sm font-semibold underline whitespace-nowrap"
+                  style={{ color: 'var(--color-mauve)' }}
+                >
+                  Send an extra letter →
+                </Link>
+              </div>
             )}
           </div>
-          {/* Progress bar */}
-          <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-blush)' }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${(usedCount / maxLetters) * 100}%`, backgroundColor: 'var(--color-mauve)' }}
-            />
-          </div>
-        </div>
+        )}
 
         {/* Letter history */}
         <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-charcoal)' }}>Your letters</h2>

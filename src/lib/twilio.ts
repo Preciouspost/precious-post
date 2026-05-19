@@ -28,4 +28,7 @@ export const SMS_TEMPLATES = {
 
   nudgeReminder: (name: string) =>
     `Hi ${name}! Just a reminder — your Precious Post letter hasn't been sent yet this month. A few minutes is all it takes 💌 ${APP_URL}/dashboard`,
+
+  oneTimeNudge: (name: string) =>
+    `Hi ${name}! It's a new month — want to send another Precious Post letter? It's just $15, no subscription needed. 💌 ${APP_URL}/letters/new`,
 }

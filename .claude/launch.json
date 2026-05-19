@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "precious-post",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/laurenstevens/Desktop/precious-post && npm run dev"],
+      "port": 3000
+    }
+  ]
+}

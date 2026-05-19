@@ -79,7 +79,7 @@ export default async function HomePage() {
             Precious Plans
           </h2>
           <p className="text-center mb-12 text-sm" style={{ color: 'var(--color-charcoal-light)' }}>The gift that arrives every month.</p>
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid sm:grid-cols-3 gap-6">
             <PlanCardClient
               name="Single Post"
               planKey="single"
@@ -97,6 +97,29 @@ export default async function HomePage() {
               features={['3 letters per month', 'Up to 3 recipients', 'Up to 8 photos each', 'Printed & mailed for you', 'Monthly reminder text', 'No obligations, cancel anytime']}
               userPlan={userPlan}
             />
+            {/* One & Done */}
+            <div
+              className="rounded-2xl p-6 border flex flex-col"
+              style={{ backgroundColor: 'white', borderColor: 'var(--color-blush-dark)', color: 'var(--color-charcoal)' }}
+            >
+              <p className="text-sm font-medium mb-1 opacity-80">One &amp; Done</p>
+              <p className="text-4xl font-bold mb-1">$15<span className="text-base font-normal opacity-60"> one time</span></p>
+              <p className="text-sm mb-5 opacity-70">Send one beautiful letter, no strings attached.</p>
+              <ul className="space-y-2 text-sm mb-6 flex-1">
+                {['1 letter, one time', '1 recipient', 'Up to 8 photos', 'Printed & mailed for you', 'No subscription'].map((f) => (
+                  <li key={f} className="flex items-center gap-2">
+                    <span className="opacity-60">✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/signup"
+                className="block text-center px-4 py-2.5 rounded-full text-sm font-semibold transition-colors"
+                style={{ backgroundColor: 'var(--color-mauve)', color: 'white' }}
+              >
+                Send a letter →
+              </Link>
+            </div>
           </div>
         </div>
       </section>

@@ -74,6 +74,38 @@ export async function GET(req: Request) {
     }
   }
 
-  console.log(`[sunday-reminders] ${monthYear} — initial: ${initialSent}, nudges: ${nudgesSent}`)
-  return NextResponse.json({ initialSent, nudgesSent })
+  // ─── One-time users nudge ──────────────────────────────────────────────────
+  const { data: oneTimeUsers } = await supabase
+    .from('profiles')
+    .select('user_id, name, phone, created_at')
+    .eq('plan', 'one_time')
+    .not('phone', 'is', null)
+
+  // Find one-time users who have NOT submitted a letter this calendar month
+  const oneTimeUserIds = (oneTimeUsers ?? []).map((u: { user_id: string }) => u.user_id)
+  let oneTimeSubmittedIds = new Set<string>()
+  if (oneTimeUserIds.length > 0) {
+    const { data: oneTimeSubmitted } = await supabase
+      .from('letters')
+      .select('user_id')
+      .in('user_id', oneTimeUserIds)
+      .eq('month_year', monthYear)
+      .eq('status', 'submitted')
+    oneTimeSubmittedIds = new Set((oneTimeSubmitted ?? []).map((l: { user_id: string }) => l.user_id))
+  }
+
+  let oneTimeSent = 0
+  for (const user of oneTimeUsers ?? []) {
+    if (!user.phone) continue
+    if (oneTimeSubmittedIds.has(user.user_id)) continue
+
+    // Send nudge on the first Sunday of each month (todayDay <= 7)
+    if (todayDay <= 7) {
+      await sendSMS(user.phone, SMS_TEMPLATES.oneTimeNudge(user.name))
+      oneTimeSent++
+    }
+  }
+
+  console.log(`[sunday-reminders] ${monthYear} — initial: ${initialSent}, nudges: ${nudgesSent}, one-time: ${oneTimeSent}`)
+  return NextResponse.json({ initialSent, nudgesSent, oneTimeSent })
 }

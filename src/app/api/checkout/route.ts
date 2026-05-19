@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { plan } = await req.json() as { plan: 'single' | 'triple' }
+  const { plan, letter_id } = await req.json() as { plan: 'single' | 'triple'; letter_id?: string }
   const priceId = PRICES[plan]?.()
   if (!priceId) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
 
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=1`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/select-plan`,
-    metadata: { user_id: user.id, plan },
+    metadata: { user_id: user.id, plan, ...(letter_id ? { letter_id } : {}) },
   })
 
   return NextResponse.json({ url: session.url })

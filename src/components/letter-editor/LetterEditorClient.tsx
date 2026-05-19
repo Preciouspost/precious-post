@@ -10,6 +10,7 @@ import { getLayoutsForCount, getDefaultLayout, getLayout } from './layouts'
 import { PreciousPostLogo } from '@/components/Logo'
 import Link from 'next/link'
 import { getCurrentMonthYear } from '@/lib/utils'
+import { SubmitUpsellModal } from './SubmitUpsellModal'
 
 interface Props {
   profile: Profile
@@ -96,6 +97,8 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   const [showReview, setShowReview] = useState(false)
   const [showSendAnother, setShowSendAnother] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const [showUpsellModal, setShowUpsellModal] = useState(false)
+  const [upsellLetterId, setUpsellLetterId] = useState<string>('')
   const [submittedCount, setSubmittedCount] = useState(usedCount)
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
@@ -302,6 +305,33 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
 
   // ─── Submit / clear ───────────────────────────────────────────────────────────
 
+  function needsUpsell(): boolean {
+    const plan = profile.plan
+    if (!plan || plan === 'one_time') return true
+    if (plan === 'single' && submittedCount >= 1) return true
+    if (plan === 'triple' && submittedCount >= 3) return true
+    return false
+  }
+
+  async function saveDraftToDb(): Promise<string | null> {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    const payload = {
+      user_id: user.id, address_id: addressId || null, photos, layout,
+      photo_area_height: photoAreaHeight, font, font_size: fontSize as number | string,
+      letter_text: letterText, status: 'draft',
+      month_year: getCurrentMonthYear(),
+    }
+    let { data: letter, error } = await supabase.from('letters').insert(payload).select('id').single()
+    if (error?.message?.includes('letters_font_size_check')) {
+      const fallbackSize = fontSize <= 13 ? 'small' : fontSize >= 17 ? 'large' : 'medium'
+      ;({ data: letter, error } = await supabase.from('letters').insert({ ...payload, font_size: fallbackSize }).select('id').single())
+    }
+    if (error || !letter) return null
+    return letter.id
+  }
+
   function validateAndReview() {
     if (!addressId) {
       setRecipientError(true)
@@ -311,6 +341,20 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     if (!letterText.trim()) {
       if (isMobile) setMobileTab('letter')
       else alert('Please write your letter.')
+      return
+    }
+    if (needsUpsell()) {
+      // Save as draft first, then open upsell modal
+      saveDraftToDb().then((id) => {
+        if (id) {
+          setUpsellLetterId(id)
+          setShowUpsellModal(true)
+        } else {
+          // If draft save failed, still show upsell but without a letter id
+          setUpsellLetterId('')
+          setShowUpsellModal(true)
+        }
+      })
       return
     }
     setShowReview(true)
@@ -886,6 +930,14 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   function renderModals() {
     return (
       <>
+        <SubmitUpsellModal
+          isOpen={showUpsellModal}
+          onClose={() => setShowUpsellModal(false)}
+          userPlan={profile.plan}
+          monthlyCount={submittedCount}
+          letterId={upsellLetterId}
+        />
+
         {showUpgrade && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
             <div style={{ backgroundColor: 'white', borderRadius: 20, padding: isMobile ? 24 : 40, maxWidth: 460, width: '100%', textAlign: 'center' }}>
