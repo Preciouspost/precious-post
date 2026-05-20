@@ -7,12 +7,16 @@ import { MarketingFooter } from '@/components/MarketingFooter'
 
 const FAQS = [
   {
-    q: 'How much does it cost?',
-    a: 'Single Post is $12.95/month and includes 1 letter per month to 1 recipient. Triple Post is $32/month and includes 3 letters per month to up to 3 different recipients. Printing and mailing are included in both plans.',
+    q: 'When does my letter get mailed?',
+    a: 'Once you submit your letter, Lauren prints and mails it within 3 business days.',
   },
   {
-    q: 'When does my letter get mailed?',
-    a: 'Once you submit your letter, Lauren prints and mails it within 3 business days. You\'ll receive an SMS confirmation when your letter is submitted.',
+    q: 'Can I track my letter?',
+    a: 'Snail mail is just that — snail mail! Once your letter is in the hands of USPS, there is no individual tracking. That said, you can always check your dashboard to see the status of your letter (Submitted, Printed, or Mailed) so you know where it is in the process.',
+  },
+  {
+    q: 'Can I send a letter while traveling outside the United States?',
+    a: 'Absolutely! You can submit your letter from anywhere in the world — all you need is an internet connection. Just keep in mind that Precious Post currently mails to recipients within the United States only.',
   },
   {
     q: 'What does the letter look like?',
