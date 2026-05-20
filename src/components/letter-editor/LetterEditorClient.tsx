@@ -170,7 +170,37 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
 
   // ─── File upload ─────────────────────────────────────────────────────────────
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  // ─── Photo compression ───────────────────────────────────────────────────────
+  async function compressPhoto(file: File): Promise<File> {
+    const MAX_PX = 2400
+    const QUALITY = 0.85
+    return new Promise((resolve) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const { naturalWidth: w, naturalHeight: h } = img
+        // If already small enough, skip compression
+        if (w <= MAX_PX && h <= MAX_PX) { resolve(file); return }
+        const scale = MAX_PX / Math.max(w, h)
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(w * scale)
+        canvas.height = Math.round(h * scale)
+        const ctx = canvas.getContext('2d')!
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        canvas.toBlob(
+          (blob) => resolve(blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file),
+          'image/jpeg', QUALITY
+        )
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+      img.src = url
+    })
+  }
+
+    const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const replacingSlot = replacingSlotRef.current
     const targetSlot = pendingSlotRef.current
     const remaining = replacingSlot !== null ? 1 : MAX_PHOTOS - photosRef.current.length
@@ -184,9 +214,9 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     if (!user) return
     const newPhotos: PhotoItem[] = []
     for (const file of files) {
-      const ext = file.name.split('.').pop()
-      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error } = await supabase.storage.from('letter-photos').upload(path, file)
+      const compressed = await compressPhoto(file)
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+      const { error } = await supabase.storage.from('letter-photos').upload(path, compressed, { contentType: 'image/jpeg' })
       if (!error) {
         const { data: { publicUrl } } = supabase.storage.from('letter-photos').getPublicUrl(path)
         newPhotos.push({ id: path, url: publicUrl, x: 50, y: 50, width: 100, height: 100 })
