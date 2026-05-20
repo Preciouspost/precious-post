@@ -294,6 +294,21 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     dragIndexRef.current = null; setDragOverIndex(null)
   }
 
+  // ─── Touch drag (mobile reorder) ─────────────────────────────────────────────
+  function handleTouchDragStart(e: React.TouchEvent, index: number) {
+    dragIndexRef.current = index
+  }
+  function handleTouchDragMove(e: React.TouchEvent) {
+    if (dragIndexRef.current === null) return
+    const touch = e.touches[0]
+    const el = document.elementFromPoint(touch.clientX, touch.clientY)
+    const photoEl = el?.closest('[data-photo-idx]') as HTMLElement | null
+    if (photoEl?.dataset.photoIdx !== undefined) {
+      setDragOverIndex(parseInt(photoEl.dataset.photoIdx))
+    }
+  }
+  function handleTouchDragEnd() { handleDragEnd() }
+
   // ─── Slot / photo tap handlers ────────────────────────────────────────────────
 
   /** Tap on an empty slot — open file picker to fill that slot */
@@ -544,11 +559,15 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
           <div
             key={photo.id}
             draggable
+            data-photo-idx={i}
             onDragStart={() => handleDragStart(i)}
             onDragEnter={() => handleDragEnter(i)}
             onDragEnd={handleDragEnd}
             onDragOver={e => e.preventDefault()}
-            style={{ flexShrink: 0, position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: dragOverIndex === i ? '2.5px solid var(--color-mauve)' : '2px solid var(--color-blush-dark)', opacity: dragIndexRef.current === i ? 0.4 : 1, cursor: 'grab' }}>
+            onTouchStart={(e) => handleTouchDragStart(e, i)}
+            onTouchMove={handleTouchDragMove}
+            onTouchEnd={handleTouchDragEnd}
+            style={{ flexShrink: 0, position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: dragOverIndex === i ? '2.5px solid var(--color-mauve)' : '2px solid var(--color-blush-dark)', opacity: dragIndexRef.current === i ? 0.4 : 1, cursor: 'grab', touchAction: 'none' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photo.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${photo.x}% ${photo.y}%`, userSelect: 'none', display: 'block', transform: photo.zoom && photo.zoom !== 1 ? `scale(${photo.zoom})` : undefined, transformOrigin: `${photo.x}% ${photo.y}%` }} />
             <div style={{ position: 'absolute', top: 3, left: 3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--color-mauve)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', padding: '0 3px' }}>{i + 1}</div>
@@ -943,8 +962,8 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
               </button>
               {photos.length > 0 && <div style={{ width: 1, height: 56, backgroundColor: 'var(--color-blush-dark)', flexShrink: 0 }} />}
               {photos.map((photo, i) => (
-                <div key={photo.id} draggable onDragStart={() => handleDragStart(i)} onDragEnter={() => handleDragEnter(i)} onDragEnd={handleDragEnd} onDragOver={e => e.preventDefault()}
-                  style={{ flexShrink: 0, position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: dragOverIndex === i ? '2.5px solid var(--color-mauve)' : '2px solid var(--color-blush-dark)', opacity: dragIndexRef.current === i ? 0.4 : 1, cursor: 'grab' }}>
+                <div key={photo.id} draggable data-photo-idx={i} onDragStart={() => handleDragStart(i)} onDragEnter={() => handleDragEnter(i)} onDragEnd={handleDragEnd} onDragOver={e => e.preventDefault()} onTouchStart={(e) => handleTouchDragStart(e, i)} onTouchMove={handleTouchDragMove} onTouchEnd={handleTouchDragEnd}
+                  style={{ flexShrink: 0, position: 'relative', width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: dragOverIndex === i ? '2.5px solid var(--color-mauve)' : '2px solid var(--color-blush-dark)', opacity: dragIndexRef.current === i ? 0.4 : 1, cursor: 'grab', touchAction: 'none' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={photo.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${photo.x}% ${photo.y}%`, userSelect: 'none', display: 'block', transform: photo.zoom && photo.zoom !== 1 ? `scale(${photo.zoom})` : undefined, transformOrigin: `${photo.x}% ${photo.y}%` }} />
                   <div style={{ position: 'absolute', top: 3, left: 3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--color-mauve)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', padding: '0 3px' }}>{i + 1}</div>
