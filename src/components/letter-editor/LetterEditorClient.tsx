@@ -171,7 +171,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   // ─── File upload ─────────────────────────────────────────────────────────────
 
   // ─── Photo compression ───────────────────────────────────────────────────────
-  async function compressPhoto(file: File): Promise<File> {
+  async function compressPhoto(file: File): Promise<File | null> {
     const MAX_PX = 2400
     const QUALITY = 0.85
     return new Promise((resolve) => {
@@ -180,6 +180,11 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
       img.onload = () => {
         URL.revokeObjectURL(url)
         const { naturalWidth: w, naturalHeight: h } = img
+        // Reject photos that are too small for print quality
+        if (Math.min(w, h) < 800) {
+          resolve(null as unknown as File)
+          return
+        }
         // If already small enough, skip compression
         if (w <= MAX_PX && h <= MAX_PX) { resolve(file); return }
         const scale = MAX_PX / Math.max(w, h)
@@ -213,14 +218,19 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const newPhotos: PhotoItem[] = []
+    const tooSmall: string[] = []
     for (const file of files) {
       const compressed = await compressPhoto(file)
+      if (!compressed) { tooSmall.push(file.name); continue }
       const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
       const { error } = await supabase.storage.from('letter-photos').upload(path, compressed, { contentType: 'image/jpeg' })
       if (!error) {
         const { data: { publicUrl } } = supabase.storage.from('letter-photos').getPublicUrl(path)
         newPhotos.push({ id: path, url: publicUrl, x: 50, y: 50, width: 100, height: 100 })
       }
+    }
+    if (tooSmall.length > 0) {
+      alert(`${tooSmall.length === 1 ? 'That photo is' : 'Some photos are'} too low resolution for print quality and ${tooSmall.length === 1 ? 'was' : 'were'} not added. Please use a photo that is at least 800px on its shortest side.`)
     }
     if (newPhotos.length > 0) {
       setPrevPhotos(snapshot)
