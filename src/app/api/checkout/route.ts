@@ -34,8 +34,9 @@ export async function POST(req: Request) {
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=1`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/select-plan`,
+    allow_promotion_codes: true,
+    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?success=1`,
+    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/select-plan`,
     metadata: { user_id: user.id, plan, ...(letter_id ? { letter_id } : {}) },
   })
 

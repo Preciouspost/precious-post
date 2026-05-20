@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display, Caveat } from 'next/font/google'
 import './globals.css'
+import { PromoBanner } from '@/components/PromoBanner'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} ${caveat.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col" style={{ fontFamily: 'var(--font-inter)' }}>
+        <PromoBanner />
         {children}
       </body>
     </html>
