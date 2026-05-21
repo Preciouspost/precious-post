@@ -15,10 +15,11 @@ export default async function NewLetterPage() {
     .eq('user_id', user.id)
     .single() as { data: Profile | null }
 
-  if (!profile?.plan) redirect('/select-plan')
+  // Only redirect to select-plan if no profile at all
+  if (!profile) redirect('/select-plan')
 
   const monthYear = getCurrentMonthYear()
-  const maxLetters = getMaxLetters(profile.plan)
+  const maxLetters = getMaxLetters(profile.plan ?? null)
 
   const { data: usage } = await supabase
     .from('monthly_usage')
@@ -28,7 +29,8 @@ export default async function NewLetterPage() {
     .single()
 
   const usedCount = usage?.count ?? 0
-  if (usedCount >= maxLetters) redirect('/dashboard')
+  // Only enforce limits for subscription users — null/one_time users pay at submit
+  if (profile.plan && profile.plan !== 'one_time' && usedCount >= maxLetters) redirect('/dashboard')
 
   const { data: addresses } = await supabase
     .from('addresses')
