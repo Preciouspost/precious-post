@@ -8,6 +8,7 @@ import { Camera, Printer, Mail } from 'lucide-react'
 export default async function HomePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const isLoggedIn = !!user
   let userPlan: string | null = null
   if (user) {
     const { data: profile } = await supabase.from('profiles').select('plan').eq('user_id', user.id).single()
@@ -117,7 +118,7 @@ export default async function HomePage() {
                 ))}
               </ul>
               <Link
-                href="/signup?plan=one_done"
+                href={isLoggedIn ? '/letters/new' : '/signup?plan=one_done'}
                 className="block text-center px-4 py-2.5 rounded-full text-sm font-semibold transition-colors"
                 style={{ backgroundColor: 'var(--color-mauve)', color: 'white' }}
               >

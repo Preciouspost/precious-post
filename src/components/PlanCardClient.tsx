@@ -24,6 +24,23 @@ export function PlanCardClient({ name, planKey, price, description, features, fe
 
   const isCurrentPlan = userPlan === planKey
   const canUpgrade = userPlan === 'single' && planKey === 'triple'
+  const isLoggedInNoPlan = userPlan === null
+
+  async function handleSelectPlan() {
+    setLoading(true)
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: planKey }),
+    })
+    const { url, error } = await res.json()
+    if (error || !url) {
+      alert(error || 'Something went wrong. Please try again.')
+      setLoading(false)
+    } else {
+      window.location.href = url
+    }
+  }
 
   async function handleUpgrade() {
     setLoading(true)
@@ -142,6 +159,15 @@ export function PlanCardClient({ name, planKey, price, description, features, fe
             </div>
           )}
         </>
+      ) : isLoggedInNoPlan ? (
+        <button
+          onClick={handleSelectPlan}
+          disabled={loading}
+          className="w-full text-center px-4 py-2.5 rounded-full text-sm font-semibold transition-opacity disabled:opacity-60"
+          style={{ backgroundColor: btnBg, color: btnColor }}
+        >
+          {loading ? 'Redirecting…' : 'Get started'}
+        </button>
       ) : (
         <Link
           href={`/signup?plan=${planKey}`}
