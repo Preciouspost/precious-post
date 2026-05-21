@@ -144,7 +144,7 @@ export function PlanCardClient({ name, planKey, price, description, features, fe
         </>
       ) : (
         <Link
-          href="/signup"
+          href={`/signup?plan=${planKey}`}
           className="block text-center px-4 py-2.5 rounded-full text-sm font-semibold transition-colors"
           style={{ backgroundColor: btnBg, color: btnColor }}
         >

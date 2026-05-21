@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { PreciousPostLogo } from '@/components/Logo'
@@ -12,6 +12,8 @@ function toTitleCase(str: string) {
 
 export default function SignupPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const plan = searchParams.get('plan') // 'single' | 'triple' | 'one_done'
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -49,7 +51,23 @@ export default function SignupPage() {
           heard_from: heardFrom || null,
         }, { onConflict: 'user_id' })
       }
-      router.push('/select-plan')
+      if (plan === 'one_done') {
+        router.push('/letters/new')
+      } else if (plan === 'single' || plan === 'triple') {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan }),
+        })
+        const { url, error: checkoutError } = await res.json()
+        if (checkoutError || !url) {
+          router.push('/select-plan')
+        } else {
+          window.location.href = url
+        }
+      } else {
+        router.push('/select-plan')
+      }
       router.refresh()
     }
   }
