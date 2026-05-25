@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     mode: 'payment',
     line_items: [priceConfig],
     allow_promotion_codes: true,
-    automatic_tax: { enabled: true },
+    automatic_tax: { enabled: false },
     success_url: `${siteUrl}/dashboard?submitted=1`,
     cancel_url: `${siteUrl}/dashboard`,
     metadata: {

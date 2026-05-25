@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
     allow_promotion_codes: true,
-    automatic_tax: { enabled: true },
+    automatic_tax: { enabled: false },
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?success=1`,
     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/select-plan`,
     metadata: { user_id: user.id, plan, ...(letter_id ? { letter_id } : {}) },
