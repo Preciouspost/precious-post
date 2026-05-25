@@ -443,7 +443,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
 
     if (error) { alert('Error submitting: ' + error.message); setSubmitting(false); return }
     await supabase.rpc('increment_usage', { p_user_id: user.id, p_month_year: monthYear })
-    await fetch('/api/sms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'submitted', letterId: letter.id }) })
+
     try { localStorage.removeItem(draftKey(profile.user_id)) } catch {}
     const newCount = submittedCount + 1
     setSubmittedCount(newCount); setSubmitting(false)

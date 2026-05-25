@@ -23,9 +23,6 @@ export const SMS_TEMPLATES = {
   monthlyReminder: (name: string) =>
     `Hi ${name}! 💌 It's time to send your Precious Post letter this month. Write it here: ${APP_URL}/dashboard — Reply STOP to unsubscribe from texts.`,
 
-  submitted: (recipientName: string) =>
-    `Your letter to ${recipientName} has been submitted! It will be printed and mailed shortly. 💌`,
-
   nudgeReminder: (name: string) =>
     `Hi ${name}! Just a reminder — your Precious Post letter hasn't been sent yet this month. A few minutes is all it takes 💌 ${APP_URL}/dashboard — Reply STOP to unsubscribe from texts.`,
 
