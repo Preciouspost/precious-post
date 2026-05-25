@@ -31,6 +31,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .from('letters')
     .select('*, address:addresses(*)')
     .eq('user_id', user.id)
+    .neq('status', 'draft')
     .order('created_at', { ascending: false })
     .limit(20) as { data: Letter[] | null }
 
