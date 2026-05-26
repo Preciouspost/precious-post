@@ -15,7 +15,7 @@ export async function GET() {
   // All profiles that have ever had a subscription
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('user_id, name, email, plan, stripe_subscription_status, created_at, cancellation_reason')
+    .select('user_id, name, email, plan, stripe_subscription_status, created_at, cancellation_reason, heard_from')
     .order('created_at', { ascending: false })
 
   // Plan upgrades
@@ -122,6 +122,7 @@ export async function GET() {
     email: p.email,
     plan: p.plan,
     joined: p.created_at,
+    heard_from: p.heard_from ?? null,
   }))
 
   return NextResponse.json({

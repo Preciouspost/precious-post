@@ -7,8 +7,9 @@ export function PromoBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    const expired = new Date() > new Date('2026-06-14T23:59:59')
     const dismissed = sessionStorage.getItem('promo-banner-dismissed')
-    if (!dismissed) setVisible(true)
+    if (!dismissed && !expired) setVisible(true)
   }, [])
 
   function dismiss() {

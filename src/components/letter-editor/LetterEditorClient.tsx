@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { createClient } from '@/lib/supabase/client'
-import { Address, FontFamily, FontSize, LayoutId, PhotoItem, Profile } from '@/types'
+import { Address, FontFamily, FontSize, LayoutId, Letter, PhotoItem, Profile } from '@/types'
 import { LetterPreview } from './LetterPreview'
 import { getLayoutsForCount, getDefaultLayout, getLayout } from './layouts'
 import { PreciousPostLogo } from '@/components/Logo'
@@ -18,6 +18,14 @@ interface Props {
   monthYear: string
   usedCount: number
   maxLetters: number
+  initialLetter?: Letter | null
+}
+
+function parseFontSize(fs: unknown): number {
+  if (typeof fs === 'number') return fs
+  if (fs === 'small') return 12
+  if (fs === 'large') return 18
+  return 15
 }
 
 const MAX_PHOTOS = 8
@@ -72,7 +80,7 @@ function IconScale({ color = 'currentColor' }: { color?: string }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function LetterEditorClient({ profile, addresses, monthYear, usedCount, maxLetters }: Props) {
+export function LetterEditorClient({ profile, addresses, monthYear, usedCount, maxLetters, initialLetter }: Props) {
   const router = useRouter()
   const previewRef = useRef<HTMLDivElement>(null)
 
@@ -80,18 +88,22 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     ? (() => { try { return JSON.parse(localStorage.getItem(draftKey(profile.user_id)) ?? 'null') } catch { return null } })()
     : null
 
-  const [photos, setPhotos] = useState<PhotoItem[]>(savedDraft?.photos ?? [])
-  const [layout, setLayout] = useState<LayoutId>(savedDraft?.layout ?? 'hero-2-below')
-  const [photoAreaHeight, setPhotoAreaHeight] = useState(savedDraft?.photoAreaHeight ?? 45)
-  const [font, setFont] = useState<FontFamily>(savedDraft?.font ?? 'serif')
-  // Migrate legacy string values from old localStorage drafts
-  const savedFontSize = savedDraft?.fontSize
+  // initialLetter (from Supabase) takes priority over localStorage draft
+  const [photos, setPhotos] = useState<PhotoItem[]>(initialLetter?.photos ?? savedDraft?.photos ?? [])
+  const [layout, setLayout] = useState<LayoutId>(initialLetter?.layout ?? savedDraft?.layout ?? 'hero-2-below')
+  const [photoAreaHeight, setPhotoAreaHeight] = useState(initialLetter?.photo_area_height ?? savedDraft?.photoAreaHeight ?? 45)
+  const [font, setFont] = useState<FontFamily>((initialLetter?.font ?? savedDraft?.font ?? 'serif') as FontFamily)
   const [fontSize, setFontSize] = useState<FontSize>(
-    typeof savedFontSize === 'number' ? savedFontSize
-    : savedFontSize === 'small' ? 12 : savedFontSize === 'large' ? 18 : 15
+    initialLetter ? parseFontSize(initialLetter.font_size)
+    : typeof savedDraft?.fontSize === 'number' ? savedDraft.fontSize
+    : savedDraft?.fontSize === 'small' ? 12 : savedDraft?.fontSize === 'large' ? 18 : 15
   )
-  const [letterText, setLetterText] = useState(savedDraft?.letterText ?? '')
-  const [addressId, setAddressId] = useState<string>(savedDraft?.addressId ?? addresses[0]?.id ?? '')
+  const [letterText, setLetterText] = useState(initialLetter?.letter_text ?? savedDraft?.letterText ?? '')
+  const [addressId, setAddressId] = useState<string>(initialLetter?.address_id ?? savedDraft?.addressId ?? addresses[0]?.id ?? '')
+
+  // Track the Supabase letter ID for auto-save (update instead of insert)
+  const dbLetterIdRef = useRef<string | null>(initialLetter?.id ?? null)
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showAddAddress, setShowAddAddress] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showReview, setShowReview] = useState(false)
@@ -162,6 +174,39 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
       localStorage.setItem(draftKey(profile.user_id), JSON.stringify({ photos, layout, photoAreaHeight, font, fontSize, letterText, addressId }))
       setLastSaved(new Date())
     } catch {}
+  }, [photos, layout, photoAreaHeight, font, fontSize, letterText, addressId])
+
+  // Auto-save draft to Supabase (3s debounce) so drafts survive logout/device changes
+  useEffect(() => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const payload = {
+        user_id: user.id,
+        address_id: addressId || null,
+        photos,
+        layout,
+        photo_area_height: photoAreaHeight,
+        font,
+        font_size: fontSize as number | string,
+        letter_text: letterText,
+        status: 'draft' as const,
+        month_year: monthYear,
+      }
+      if (dbLetterIdRef.current) {
+        await supabase.from('letters').update(payload).eq('id', dbLetterIdRef.current)
+      } else {
+        let { data: letter, error } = await supabase.from('letters').insert(payload).select('id').single()
+        if (error?.message?.includes('letters_font_size_check')) {
+          const fallback = fontSize <= 13 ? 'small' : fontSize >= 17 ? 'large' : 'medium'
+          ;({ data: letter } = await supabase.from('letters').insert({ ...payload, font_size: fallback }).select('id').single())
+        }
+        if (letter?.id) dbLetterIdRef.current = letter.id
+      }
+    }, 3000)
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current) }
   }, [photos, layout, photoAreaHeight, font, fontSize, letterText, addressId])
 
   const selectedAddress = addresses.find(a => a.id === addressId)
@@ -369,6 +414,8 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
   }
 
   async function saveDraftToDb(): Promise<string | null> {
+    // If we already have a Supabase draft, return its ID directly
+    if (dbLetterIdRef.current) return dbLetterIdRef.current
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
@@ -384,6 +431,7 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
       ;({ data: letter, error } = await supabase.from('letters').insert({ ...payload, font_size: fallbackSize }).select('id').single())
     }
     if (error || !letter) return null
+    dbLetterIdRef.current = letter.id
     return letter.id
   }
 
@@ -422,23 +470,30 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const insertPayload = {
-      user_id: user.id, address_id: addressId, photos, layout,
+    const submitFields = {
+      address_id: addressId, photos, layout,
       photo_area_height: photoAreaHeight, font, font_size: fontSize as number | string,
       letter_text: letterText, status: 'submitted',
       month_year: getCurrentMonthYear(), submitted_at: new Date().toISOString(),
     }
-    let { data: letter, error } = await supabase.from('letters').insert(insertPayload).select().single()
-
-    // If the legacy text check constraint is still in place, retry with a mapped string.
-    // Permanent fix: run the migration SQL in Supabase SQL editor:
-    //   ALTER TABLE public.letters DROP CONSTRAINT IF EXISTS letters_font_size_check;
-    //   ALTER TABLE public.letters ALTER COLUMN font_size TYPE smallint
-    //     USING (CASE font_size WHEN 'small' THEN 12 WHEN 'large' THEN 18 ELSE 15 END)::smallint;
-    if (error?.message?.includes('letters_font_size_check')) {
-      const fallbackSize = fontSize <= 13 ? 'small' : fontSize >= 17 ? 'large' : 'medium'
+    let letter, error
+    if (dbLetterIdRef.current) {
+      // Update existing draft to submitted
       ;({ data: letter, error } = await supabase.from('letters')
-        .insert({ ...insertPayload, font_size: fallbackSize }).select().single())
+        .update(submitFields).eq('id', dbLetterIdRef.current).select().single())
+    } else {
+      const insertPayload = { user_id: user.id, ...submitFields }
+      ;({ data: letter, error } = await supabase.from('letters').insert(insertPayload).select().single())
+      // If the legacy text check constraint is still in place, retry with a mapped string.
+      // Permanent fix: run the migration SQL in Supabase SQL editor:
+      //   ALTER TABLE public.letters DROP CONSTRAINT IF EXISTS letters_font_size_check;
+      //   ALTER TABLE public.letters ALTER COLUMN font_size TYPE smallint
+      //     USING (CASE font_size WHEN 'small' THEN 12 WHEN 'large' THEN 18 ELSE 15 END)::smallint;
+      if (error?.message?.includes('letters_font_size_check')) {
+        const fallbackSize = fontSize <= 13 ? 'small' : fontSize >= 17 ? 'large' : 'medium'
+        ;({ data: letter, error } = await supabase.from('letters')
+          .insert({ ...insertPayload, font_size: fallbackSize }).select().single())
+      }
     }
 
     if (error) { alert('Error submitting: ' + error.message); setSubmitting(false); return }

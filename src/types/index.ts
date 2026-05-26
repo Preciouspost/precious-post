@@ -14,6 +14,7 @@ export interface Profile {
   stripe_subscription_id: string | null
   stripe_subscription_status: string | null
   phone: string | null
+  heard_from: string | null
   created_at: string
 }
 

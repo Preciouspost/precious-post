@@ -1,13 +1,23 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LetterEditorClient } from '@/components/letter-editor/LetterEditorClient'
-import { Address, Profile } from '@/types'
+import { Address, Letter, Profile } from '@/types'
 import { getCurrentMonthYear, getMaxLetters } from '@/lib/utils'
 
-export default async function NewLetterPage() {
+export default async function EditLetterPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: letter } = await supabase
+    .from('letters')
+    .select('*, address:addresses(*)')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single() as { data: Letter | null }
+
+  if (!letter || letter.status !== 'draft') redirect('/dashboard')
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -15,7 +25,6 @@ export default async function NewLetterPage() {
     .eq('user_id', user.id)
     .single() as { data: Profile | null }
 
-  // Only redirect to select-plan if no profile at all
   if (!profile) redirect('/select-plan')
 
   const monthYear = getCurrentMonthYear()
@@ -29,21 +38,6 @@ export default async function NewLetterPage() {
     .single()
 
   const usedCount = usage?.count ?? 0
-  // Only enforce limits for subscription users — null/one_time users pay at submit
-  if (profile.plan && profile.plan !== 'one_time' && usedCount >= maxLetters) redirect('/dashboard')
-
-  // If there's an existing draft this month, resume it
-  const { data: existingDraft } = await supabase
-    .from('letters')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('status', 'draft')
-    .eq('month_year', monthYear)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (existingDraft) redirect(`/letters/${existingDraft.id}/edit`)
 
   const { data: addresses } = await supabase
     .from('addresses')
@@ -58,6 +52,7 @@ export default async function NewLetterPage() {
       monthYear={monthYear}
       usedCount={usedCount}
       maxLetters={maxLetters}
+      initialLetter={letter}
     />
   )
 }

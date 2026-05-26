@@ -17,15 +17,23 @@ export async function sendSMS(to: string, body: string) {
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://precious-post.vercel.app'
 
 export const SMS_TEMPLATES = {
-  welcome: (name: string) =>
-    `Welcome to Precious Post, ${name}! 💌 Your first letter is waiting to be written. Log in to get started: ${APP_URL}/dashboard — Reply STOP to unsubscribe from texts.`,
+  welcome: (name: string) => {
+    const first = name.split(' ')[0]
+    return `Welcome to Precious Post, ${first}! 💌 Save this number as Precious Post so you don't miss updates. Your first letter is waiting to be written: ${APP_URL}/dashboard — Reply STOP to unsubscribe from texts.`
+  },
 
-  monthlyReminder: (name: string) =>
-    `Hi ${name}! 💌 It's time to send your Precious Post letter this month. Write it here: ${APP_URL}/dashboard — Reply STOP to unsubscribe from texts.`,
+  monthlyReminder: (name: string) => {
+    const first = name.split(' ')[0]
+    return `Hi ${first}! 💌 It's time to send your Precious Post letter this month. Write it here: ${APP_URL}/dashboard — Reply STOP to unsubscribe from texts.`
+  },
 
-  nudgeReminder: (name: string) =>
-    `Hi ${name}! Just a reminder — your Precious Post letter hasn't been sent yet this month. A few minutes is all it takes 💌 ${APP_URL}/dashboard — Reply STOP to unsubscribe from texts.`,
+  nudgeReminder: (name: string) => {
+    const first = name.split(' ')[0]
+    return `Hi ${first}! Just a reminder — your Precious Post letter hasn't been sent yet this month. A few minutes is all it takes 💌 ${APP_URL}/dashboard — Reply STOP to unsubscribe from texts.`
+  },
 
-  oneTimeNudge: (name: string) =>
-    `Hi ${name}! It's a new month — want to send another Precious Post letter? 💌 ${APP_URL}/letters/new — Reply STOP to unsubscribe from texts.`,
+  oneTimeNudge: (name: string) => {
+    const first = name.split(' ')[0]
+    return `Hi ${first}! It's a new month — want to send another Precious Post letter? 💌 ${APP_URL}/letters/new — Reply STOP to unsubscribe from texts.`
+  },
 }

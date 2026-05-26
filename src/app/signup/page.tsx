@@ -36,7 +36,7 @@ function SignupForm() {
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { data: { user: newUser }, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -48,11 +48,10 @@ function SignupForm() {
       setError(error.message)
       setLoading(false)
     } else {
-      // Upsert profile with heard_from (best-effort — works when email confirm is off)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      // Upsert profile with phone and heard_from using the user returned directly from signUp
+      if (newUser) {
         await supabase.from('profiles').upsert({
-          user_id: user.id,
+          user_id: newUser.id,
           name: `${firstName} ${lastName}`.trim(),
           email,
           phone,

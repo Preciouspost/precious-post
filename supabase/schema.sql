@@ -93,11 +93,13 @@ create policy "Users can upsert own usage" on public.monthly_usage
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (user_id, email, name)
+  insert into public.profiles (user_id, email, name, phone, heard_from)
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1))
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    new.raw_user_meta_data->>'phone',
+    new.raw_user_meta_data->>'heard_from'
   );
   return new;
 end;

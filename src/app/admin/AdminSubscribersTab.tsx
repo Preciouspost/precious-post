@@ -37,6 +37,7 @@ interface Subscriber {
   email: string
   plan: string
   joined: string
+  heard_from: string | null
 }
 
 interface SubscriberData {
@@ -398,9 +399,10 @@ export function AdminSubscribersTab() {
         ) : (
           <>
             <div className="grid grid-cols-12 text-xs font-semibold uppercase tracking-wider px-3 pb-2 mb-1 border-b" style={{ color: 'var(--color-charcoal-light)', borderColor: 'var(--color-blush-dark)' }}>
-              <span className="col-span-4">Name</span>
-              <span className="col-span-4">Email</span>
+              <span className="col-span-3">Name</span>
+              <span className="col-span-3">Email</span>
               <span className="col-span-2">Plan</span>
+              <span className="col-span-2">Heard From</span>
               <span className="col-span-2 text-right">Joined</span>
             </div>
             <div>
@@ -410,8 +412,8 @@ export function AdminSubscribersTab() {
                   className="grid grid-cols-12 items-center px-3 py-3 text-sm rounded-xl transition-colors"
                   style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--color-blush)' }}
                 >
-                  <span className="col-span-4 font-medium" style={{ color: 'var(--color-charcoal)' }}>{s.name || '—'}</span>
-                  <span className="col-span-4 truncate text-xs" style={{ color: 'var(--color-charcoal-light)' }}>{s.email}</span>
+                  <span className="col-span-3 font-medium" style={{ color: 'var(--color-charcoal)' }}>{s.name || '—'}</span>
+                  <span className="col-span-3 truncate text-xs" style={{ color: 'var(--color-charcoal-light)' }}>{s.email}</span>
                   <span className="col-span-2">
                     <span
                       className="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -423,6 +425,9 @@ export function AdminSubscribersTab() {
                     >
                       {s.plan === 'triple' ? 'Triple' : 'Single'}
                     </span>
+                  </span>
+                  <span className="col-span-2 text-xs capitalize" style={{ color: 'var(--color-charcoal-light)' }}>
+                    {s.heard_from?.replace('_', ' ') ?? '—'}
                   </span>
                   <span className="col-span-2 text-right text-xs" style={{ color: 'var(--color-charcoal-light)' }}>
                     {format(parseISO(s.joined), 'MMM d, yyyy')}
