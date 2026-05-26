@@ -14,6 +14,12 @@ export async function sendSMS(to: string, body: string) {
   })
 }
 
+export async function notifyAdmin(message: string) {
+  const adminPhone = process.env.ADMIN_PHONE
+  if (!adminPhone) return
+  return sendSMS(adminPhone, message)
+}
+
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://precious-post.vercel.app'
 
 export const SMS_TEMPLATES = {

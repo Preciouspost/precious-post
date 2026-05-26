@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
-import { sendSMS, SMS_TEMPLATES } from '@/lib/twilio'
+import { sendSMS, notifyAdmin, SMS_TEMPLATES } from '@/lib/twilio'
 import Stripe from 'stripe'
 
 export async function POST(req: Request) {
@@ -44,6 +44,8 @@ export async function POST(req: Request) {
         status: 'submitted',
         submitted_at: new Date().toISOString(),
       }).eq('id', letterId)
+
+      await notifyAdmin(`💌 New letter submitted! ${existingProfile?.name ?? 'A customer'} sent a One & Done letter. View it at ${process.env.NEXT_PUBLIC_SITE_URL}/admin`)
 
       return NextResponse.json({ received: true })
     }

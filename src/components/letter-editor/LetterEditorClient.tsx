@@ -499,6 +499,13 @@ export function LetterEditorClient({ profile, addresses, monthYear, usedCount, m
     if (error) { alert('Error submitting: ' + error.message); setSubmitting(false); return }
     await supabase.rpc('increment_usage', { p_user_id: user.id, p_month_year: monthYear })
 
+    // Notify admin — fire and forget
+    fetch('/api/notify-letter-submitted', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ letter_id: letter?.id ?? dbLetterIdRef.current }),
+    }).catch(() => {})
+
     try { localStorage.removeItem(draftKey(profile.user_id)) } catch {}
     const newCount = submittedCount + 1
     setSubmittedCount(newCount); setSubmitting(false)
