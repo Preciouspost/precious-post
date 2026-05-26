@@ -50,13 +50,20 @@ async function preCropPhotos(letter: Letter, layoutId: string): Promise<string[]
       const slotH = (slot.height / 100) * containerH
       try {
         const img = await loadImage(photo.url)
+        const zoom = photo.zoom ?? 1
         const scale = Math.max(slotW / img.naturalWidth, slotH / img.naturalHeight)
         const scaledW = img.naturalWidth * scale
         const scaledH = img.naturalHeight * scale
-        const sx = ((scaledW - slotW) * (photo.x / 100)) / scale
-        const sy = ((scaledH - slotH) * (photo.y / 100)) / scale
-        const sw = slotW / scale
-        const sh = slotH / scale
+        // object-position offset
+        const offsetX = (scaledW - slotW) * (photo.x / 100)
+        const offsetY = (scaledH - slotH) * (photo.y / 100)
+        // zoom shifts the visible area — CSS scale() anchors at (x%, y%) of the slot
+        const zoomOffsetX = slotW * (photo.x / 100) * (1 - 1 / zoom)
+        const zoomOffsetY = slotH * (photo.y / 100) * (1 - 1 / zoom)
+        const sx = (offsetX + zoomOffsetX) / scale
+        const sy = (offsetY + zoomOffsetY) / scale
+        const sw = slotW / zoom / scale
+        const sh = slotH / zoom / scale
         const canvas = document.createElement('canvas')
         canvas.width = Math.round(slotW * 2)
         canvas.height = Math.round(slotH * 2)

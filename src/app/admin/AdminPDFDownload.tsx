@@ -80,11 +80,16 @@ async function preCropPhotos(letter: Letter, layoutId: string): Promise<string[]
         const offsetX = (scaledW - slotW) * (photo.x / 100)
         const offsetY = (scaledH - slotH) * (photo.y / 100)
 
+        // zoom: CSS scale() anchors at (x%, y%) of the slot, so visible area shrinks by 1/zoom
+        const zoom = photo.zoom ?? 1
+        const zoomOffsetX = slotW * (photo.x / 100) * (1 - 1 / zoom)
+        const zoomOffsetY = slotH * (photo.y / 100) * (1 - 1 / zoom)
+
         // Convert back to source (unscaled) coordinates
-        const sx = offsetX / scale
-        const sy = offsetY / scale
-        const sw = slotW / scale
-        const sh = slotH / scale
+        const sx = (offsetX + zoomOffsetX) / scale
+        const sy = (offsetY + zoomOffsetY) / scale
+        const sw = slotW / zoom / scale
+        const sh = slotH / zoom / scale
 
         // Render at 2× for crispness
         const OUT = 2
