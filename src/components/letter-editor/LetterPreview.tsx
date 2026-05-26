@@ -314,6 +314,7 @@ function PhotoGrid({
               borderRadius: 6,
               overflow: 'hidden',
               cursor: isSwappable ? 'pointer' : isClickable ? 'pointer' : photo && onPhotoTap ? 'pointer' : photo && onPan ? 'grab' : 'default',
+              touchAction: photo && onPan ? 'none' : 'auto',
               outline: isSelected ? '3px solid white' : 'none',
               outlineOffset: '-3px',
               boxShadow: isSelected ? 'inset 0 0 0 1px rgba(0,0,0,0.3)' : 'none',
