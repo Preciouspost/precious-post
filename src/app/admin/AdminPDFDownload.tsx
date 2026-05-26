@@ -91,8 +91,9 @@ async function preCropPhotos(letter: Letter, layoutId: string): Promise<string[]
         const sw = slotW / zoom / scale
         const sh = slotH / zoom / scale
 
-        // Render at 2× for crispness
-        const OUT = 2
+        // Render at 4× — exceeds html2canvas PDF_SCALE (3.125×) so it downscales for sharpness
+        // Use PNG (lossless) to avoid double JPEG compression in the final render
+        const OUT = 4
         const canvas = document.createElement('canvas')
         canvas.width = Math.round(slotW * OUT)
         canvas.height = Math.round(slotH * OUT)
@@ -101,7 +102,7 @@ async function preCropPhotos(letter: Letter, layoutId: string): Promise<string[]
         ctx.imageSmoothingQuality = 'high'
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
 
-        return canvas.toDataURL('image/jpeg', 0.95)
+        return canvas.toDataURL('image/png')
       } catch {
         return photo.url  // fall back to original on any error
       }

@@ -65,13 +65,13 @@ async function preCropPhotos(letter: Letter, layoutId: string): Promise<string[]
         const sw = slotW / zoom / scale
         const sh = slotH / zoom / scale
         const canvas = document.createElement('canvas')
-        canvas.width = Math.round(slotW * 2)
-        canvas.height = Math.round(slotH * 2)
+        canvas.width = Math.round(slotW * 4)
+        canvas.height = Math.round(slotH * 4)
         const ctx = canvas.getContext('2d')!
         ctx.imageSmoothingEnabled = true
         ctx.imageSmoothingQuality = 'high'
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
-        return canvas.toDataURL('image/jpeg', 0.95)
+        return canvas.toDataURL('image/png')
       } catch {
         return photo.url
       }
