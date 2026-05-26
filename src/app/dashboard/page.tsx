@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { AppNav } from '@/components/AppNav'
 import { formatMonthYear, getCurrentMonthYear, getMaxLetters, PLANS } from '@/lib/utils'
 import { Letter, Profile } from '@/types'
+import { LetterDownloadButton } from '@/components/LetterDownloadButton'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ success?: string; submitted?: string }> }) {
   const supabase = await createClient()
@@ -145,7 +146,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {letters && letters.length > 0 ? (
           <div className="space-y-3">
             {letters.map((letter) => (
-              <LetterRow key={letter.id} letter={letter} />
+              <LetterRow key={letter.id} letter={letter} senderName={profile?.name ?? ''} />
             ))}
           </div>
         ) : (
@@ -163,7 +164,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   )
 }
 
-function LetterRow({ letter }: { letter: Letter }) {
+function LetterRow({ letter, senderName }: { letter: Letter; senderName: string }) {
   const statusColors: Record<string, string> = {
     draft: '#e5e7eb',
     submitted: '#fef9c3',
@@ -202,6 +203,9 @@ function LetterRow({ letter }: { letter: Letter }) {
           >
             Continue →
           </Link>
+        )}
+        {(letter.status === 'submitted' || letter.status === 'printed' || letter.status === 'mailed') && (
+          <LetterDownloadButton letter={letter} senderName={senderName} />
         )}
       </div>
     </div>
