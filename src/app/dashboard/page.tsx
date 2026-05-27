@@ -130,7 +130,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   Want to send an extra letter this month?
                 </p>
                 <Link
-                  href="/letters/new"
+                  href="/letters/new?extra=1"
                   className="text-sm font-semibold underline whitespace-nowrap"
                   style={{ color: 'var(--color-mauve)' }}
                 >
