@@ -29,8 +29,9 @@ export default async function NewLetterPage() {
     .single()
 
   const usedCount = usage?.count ?? 0
-  // Only enforce limits for subscription users — null/one_time users pay at submit
-  if (profile.plan && profile.plan !== 'one_time' && usedCount >= maxLetters) redirect('/dashboard')
+  // Triple post at limit — redirect. Single post users can still write extra letters (upsell modal handles payment).
+  // null/one_time users pay at submit so never blocked here.
+  if (profile.plan === 'triple' && usedCount >= maxLetters) redirect('/dashboard')
 
   // If there's an existing draft this month, resume it
   const { data: existingDraft } = await supabase
