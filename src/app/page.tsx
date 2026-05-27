@@ -118,7 +118,7 @@ export default async function HomePage() {
                 ))}
               </ul>
               <Link
-                href={isLoggedIn ? '/letters/new' : '/signup?plan=one_done'}
+                href={isLoggedIn ? '/letters/new?extra=1' : '/signup?plan=one_done'}
                 className="block text-center px-4 py-2.5 rounded-full text-sm font-semibold transition-colors"
                 style={{ backgroundColor: 'var(--color-mauve)', color: 'white' }}
               >
