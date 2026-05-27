@@ -32,9 +32,8 @@ export default async function NewLetterPage({ searchParams }: { searchParams: Pr
   const params = await searchParams
   const isExtra = params.extra === '1'
 
-  // Triple post at limit — redirect. Single post users can still write extra letters (upsell modal handles payment).
+  // Subscription users at their limit can still write extra letters — upsell modal handles payment.
   // null/one_time users pay at submit so never blocked here.
-  if (profile.plan === 'triple' && usedCount >= maxLetters) redirect('/dashboard')
 
   // If there's an existing draft this month, resume it — unless this is a fresh extra letter
   if (!isExtra) {

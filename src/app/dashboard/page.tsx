@@ -44,6 +44,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const isNoPlan = !plan || plan === 'one_time'
   const isSingleAtLimit = plan === 'single' && usedCount >= 1
+  const isTripleAtLimit = plan === 'triple' && usedCount >= 3
   const planLabel = plan === 'single' ? PLANS.single.name
     : plan === 'triple' ? PLANS.triple.name
     : plan === 'one_time' ? 'One & Done'
@@ -123,8 +124,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 style={{ width: `${Math.min((usedCount / maxLetters) * 100, 100)}%`, backgroundColor: 'var(--color-mauve)' }}
               />
             </div>
-            {/* Extra letter CTA for Single Post at limit */}
-            {isSingleAtLimit && (
+            {/* Extra letter CTA for subscribers at their limit */}
+            {(isSingleAtLimit || isTripleAtLimit) && (
               <div className="mt-4 pt-4 border-t flex items-center justify-between" style={{ borderColor: '#f0e6e0' }}>
                 <p className="text-sm" style={{ color: 'var(--color-charcoal-light)' }}>
                   Want to send an extra letter this month?
