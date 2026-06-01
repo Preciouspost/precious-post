@@ -319,7 +319,7 @@ export function AdminSubscribersTab() {
           }
         />
         <StatCard
-          label="Monthly Revenue"
+          label="MRR (after discounts)"
           value={`$${data.monthlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           trend={revenueTrend}
           trendLabel="vs last month"

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { getStripe } from '@/lib/stripe'
 import { subMonths, format, startOfMonth, parseISO } from 'date-fns'
 
 export async function GET() {
@@ -39,10 +40,77 @@ export async function GET() {
   const singleCount = activeProfiles.filter(p => p.plan === 'single').length
   const tripleCount = activeProfiles.filter(p => p.plan === 'triple').length
   const totalActive = activeProfiles.length
-  const monthlyRevenue = singleCount * 12.95 + tripleCount * 32
+
+  // --- Real revenue from Stripe ---
+  const stripe = getStripe()
+
+  // Fetch all active subscriptions (with discounts expanded)
+  let allSubs: Awaited<ReturnType<typeof stripe.subscriptions.list>>['data'] = []
+  let hasMore = true
+  let startingAfter: string | undefined
+  while (hasMore) {
+    const page = await stripe.subscriptions.list({
+      status: 'active',
+      limit: 100,
+      expand: ['data.discounts'],
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    })
+    allSubs = allSubs.concat(page.data)
+    hasMore = page.has_more
+    if (page.data.length > 0) startingAfter = page.data[page.data.length - 1].id
+  }
+
+  // Sum actual monthly amounts after any coupon discounts
+  const monthlyRevenue = allSubs.reduce((sum, sub) => {
+    const item = sub.items.data[0]
+    if (!item) return sum
+    const unitAmount = item.price.unit_amount ?? 0
+    const interval = item.price.recurring?.interval
+    const baseMonthly = interval === 'year' ? unitAmount / 12 : unitAmount
+    // discounts is an array; grab the first expanded Discount object if any
+    const firstDiscount = Array.isArray(sub.discounts) ? sub.discounts[0] : null
+    const coupon = firstDiscount && typeof firstDiscount === 'object' && 'coupon' in firstDiscount
+      ? (firstDiscount as { coupon: { percent_off?: number; amount_off?: number } }).coupon
+      : null
+    let actual = baseMonthly
+    if (coupon?.percent_off) actual = baseMonthly * (1 - coupon.percent_off / 100)
+    else if (coupon?.amount_off) actual = Math.max(0, baseMonthly - coupon.amount_off)
+    return sum + actual / 100
+  }, 0)
+
+  // Fetch paid subscription invoices for the last 14 months for chart + last-month revenue
+  const now = new Date()
+  const chartStart = startOfMonth(subMonths(now, 12))
+  let allInvoices: Awaited<ReturnType<typeof stripe.invoices.list>>['data'] = []
+  let invHasMore = true
+  let invStartingAfter: string | undefined
+  while (invHasMore) {
+    const page = await stripe.invoices.list({
+      status: 'paid',
+      created: { gte: Math.floor(chartStart.getTime() / 1000) },
+      limit: 100,
+      ...(invStartingAfter ? { starting_after: invStartingAfter } : {}),
+    })
+    allInvoices = allInvoices.concat(page.data)
+    invHasMore = page.has_more
+    if (page.data.length > 0) invStartingAfter = page.data[page.data.length - 1].id
+  }
+  // Only count subscription invoices (not one-time) — identified by billing_reason
+  const subInvoices = allInvoices.filter(inv =>
+    inv.billing_reason && inv.billing_reason.startsWith('subscription')
+  )
+
+  // Group invoices by month key → total paid
+  const invoicesByMonth: Record<string, number> = {}
+  for (const inv of subInvoices) {
+    const monthKey = format(new Date((inv.created) * 1000), 'yyyy-MM')
+    invoicesByMonth[monthKey] = (invoicesByMonth[monthKey] ?? 0) + (inv.amount_paid ?? 0) / 100
+  }
+
+  const lastMonthKey = format(subMonths(now, 1), 'yyyy-MM')
+  const lastMonthRevenue = invoicesByMonth[lastMonthKey] ?? 0
 
   // Build last 13 months of monthly data
-  const now = new Date()
   const monthlyData: {
     month: string
     label: string
@@ -79,10 +147,7 @@ export async function GET() {
   const currentMonthNew = monthlyData[monthlyData.length - 1].newTotal
   const lastMonthNew = monthlyData[monthlyData.length - 2].newTotal
 
-  // MoM revenue change: compare this month vs last assuming same ratio
-  // Use cumulative actives at end of each month for revenue trend
   const currentMonthKey = format(now, 'yyyy-MM')
-  const lastMonthKey = format(subMonths(now, 1), 'yyyy-MM')
 
   // Subscribers created on or before each month end
   const activeAtEndOfMonth = (monthKey: string) => {
@@ -92,17 +157,11 @@ export async function GET() {
     })
   }
 
-  const thisMonthActives = activeAtEndOfMonth(currentMonthKey)
   const lastMonthActives = activeAtEndOfMonth(lastMonthKey)
-
   const lastMonthSingleCount = lastMonthActives.filter(p => p.plan === 'single').length
   const lastMonthTripleCount = lastMonthActives.filter(p => p.plan === 'triple').length
 
-  const lastMonthRevenue =
-    lastMonthSingleCount * 12.95 +
-    lastMonthTripleCount * 32
-
-  // Build cumulative subscriber chart data (actives at end of each month)
+  // Build cumulative subscriber chart data — subscriber counts from DB, revenue from Stripe invoices
   const chartData = monthlyData.map(m => {
     const cumulative = activeAtEndOfMonth(m.month)
     return {
@@ -110,8 +169,7 @@ export async function GET() {
       cumSingle: cumulative.filter(p => p.plan === 'single').length,
       cumTriple: cumulative.filter(p => p.plan === 'triple').length,
       cumTotal: cumulative.length,
-      revenue: cumulative.filter(p => p.plan === 'single').length * 12.95 +
-               cumulative.filter(p => p.plan === 'triple').length * 32,
+      revenue: invoicesByMonth[m.month] ?? 0,
     }
   })
 
