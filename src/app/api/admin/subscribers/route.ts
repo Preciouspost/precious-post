@@ -15,7 +15,7 @@ export async function GET() {
   // All profiles that have ever had a subscription
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('user_id, name, email, plan, stripe_subscription_status, created_at, cancellation_reason, heard_from')
+    .select('user_id, name, email, plan, stripe_subscription_status, created_at, heard_from')
     .order('created_at', { ascending: false })
 
   if (profilesError) {
@@ -115,10 +115,8 @@ export async function GET() {
     }
   })
 
-  // Recent cancellations
-  const cancellations = allProfiles
-    .filter(p => p.cancellation_reason)
-    .slice(0, 20)
+  // Recent cancellations (column not yet in schema)
+  const cancellations: never[] = []
 
   // All subscribers list (active only), sorted newest first
   const allSubscribers = activeProfiles.map(p => ({
