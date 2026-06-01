@@ -279,7 +279,9 @@ export function AdminSubscribersTab() {
   if (!data || (data as { error?: string }).error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-sm" style={{ color: '#ef4444' }}>Failed to load subscriber data.</p>
+        <p className="text-sm" style={{ color: '#ef4444' }}>
+          Failed to load subscriber data: {(data as { error?: string })?.error ?? 'Unknown error'}
+        </p>
       </div>
     )
   }

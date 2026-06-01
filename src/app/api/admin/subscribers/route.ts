@@ -13,10 +13,15 @@ export async function GET() {
   const supabase = await createAdminClient()
 
   // All profiles that have ever had a subscription
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
     .select('user_id, name, email, plan, stripe_subscription_status, created_at, cancellation_reason, heard_from')
     .order('created_at', { ascending: false })
+
+  if (profilesError) {
+    console.error('[admin/subscribers] profiles query failed:', profilesError)
+    return NextResponse.json({ error: `DB error: ${profilesError.message}` }, { status: 500 })
+  }
 
   // Plan upgrades
   const { data: upgrades } = await supabase
