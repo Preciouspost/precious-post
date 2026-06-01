@@ -173,6 +173,60 @@ export async function GET() {
     }
   })
 
+  // --- One & Done tracking ---
+  // Revenue: search Stripe PaymentIntents with our metadata tag
+  let oneDoneRevenue = 0
+  let oneDoneCount = 0
+  try {
+    let piHasMore = true
+    let piStartingAfter: string | undefined
+    while (piHasMore) {
+      const page = await stripe.paymentIntents.search({
+        query: `metadata['type']:'one_time_letter' AND status:'succeeded'`,
+        limit: 100,
+        ...(piStartingAfter ? { page: piStartingAfter } : {}),
+      })
+      for (const pi of page.data) {
+        oneDoneRevenue += (pi.amount_received ?? 0) / 100
+        oneDoneCount++
+      }
+      piHasMore = page.has_more
+      if (page.data.length > 0) piStartingAfter = page.next_page ?? undefined
+    }
+  } catch {
+    // PaymentIntents search may return 0 if no metadata was tagged (old purchases)
+  }
+
+  // Letter details from Supabase — non-draft letters from one-time users
+  const { data: oneTimePurchaseRows } = await supabase
+    .from('letters')
+    .select('id, status, submitted_at, created_at, month_year, address:addresses(name), profile:profiles!letters_user_id_fkey(name, email, plan)')
+    .in('status', ['submitted', 'printed', 'mailed'])
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  type LetterRow = {
+    id: string; status: string; submitted_at: string | null; created_at: string; month_year: string
+    address: { name: string }[] | null
+    profile: { name: string; email: string; plan: string | null }[] | null
+  }
+
+  const oneDoneLetters = ((oneTimePurchaseRows as LetterRow[] | null) ?? [])
+    .filter(l => {
+      const plan = Array.isArray(l.profile) ? l.profile[0]?.plan : null
+      return !plan || plan === 'one_time'
+    })
+    .slice(0, 20)
+    .map(l => ({
+      id: l.id,
+      status: l.status,
+      submitted_at: l.submitted_at,
+      created_at: l.created_at,
+      month_year: l.month_year,
+      address: Array.isArray(l.address) ? l.address[0] ?? null : null,
+      profile: Array.isArray(l.profile) ? { name: l.profile[0]?.name ?? '', email: l.profile[0]?.email ?? '' } : null,
+    }))
+
   // Recent cancellations (column not yet in schema)
   const cancellations: never[] = []
 
@@ -201,5 +255,8 @@ export async function GET() {
     upgrades: allUpgrades,
     cancellations,
     allSubscribers,
+    oneDoneRevenue,
+    oneDoneCount,
+    oneDoneLetters,
   })
 }

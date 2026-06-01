@@ -40,6 +40,16 @@ interface Subscriber {
   heard_from: string | null
 }
 
+interface OneDoneLetter {
+  id: string
+  status: string
+  submitted_at: string | null
+  created_at: string
+  month_year: string
+  address: { name: string } | null
+  profile: { name: string; email: string } | null
+}
+
 interface SubscriberData {
   totalActive: number
   singleCount: number
@@ -55,6 +65,9 @@ interface SubscriberData {
   upgrades: Upgrade[]
   cancellations: Cancellation[]
   allSubscribers: Subscriber[]
+  oneDoneRevenue: number
+  oneDoneCount: number
+  oneDoneLetters: OneDoneLetter[]
 }
 
 function TrendBadge({ value, prefix = '' }: { value: number; prefix?: string }) {
@@ -482,6 +495,71 @@ export function AdminSubscribersTab() {
                   </div>
                 </div>
               ))}
+            </div>
+          </>
+        )}
+      </SectionCard>
+
+      {/* One & Done */}
+      <SectionCard
+        title="One & Done Letters"
+        subtitle={`${data.oneDoneCount} total · $${data.oneDoneRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} revenue`}
+      >
+        {data.oneDoneLetters.length === 0 ? (
+          <div className="rounded-xl py-8 text-center" style={{ backgroundColor: 'var(--color-blush)' }}>
+            <p className="text-2xl mb-2">💌</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--color-charcoal)' }}>No One &amp; Done purchases yet</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-12 text-xs font-semibold uppercase tracking-wider px-3 pb-2 mb-1 border-b" style={{ color: 'var(--color-charcoal-light)', borderColor: 'var(--color-blush-dark)' }}>
+              <span className="col-span-3">Sender</span>
+              <span className="col-span-3">Email</span>
+              <span className="col-span-2">To</span>
+              <span className="col-span-2">Status</span>
+              <span className="col-span-2 text-right">Date</span>
+            </div>
+            <div>
+              {data.oneDoneLetters.map((l, i) => {
+                const statusColors: Record<string, string> = {
+                  submitted: '#fef9c3',
+                  printed: '#dbeafe',
+                  mailed: '#dcfce7',
+                }
+                const statusLabels: Record<string, string> = {
+                  submitted: 'Submitted',
+                  printed: 'Printed',
+                  mailed: '📬 Mailed',
+                }
+                return (
+                  <div
+                    key={l.id}
+                    className="grid grid-cols-12 items-center px-3 py-3 text-sm rounded-xl"
+                    style={{ backgroundColor: i % 2 === 0 ? 'transparent' : 'var(--color-blush)' }}
+                  >
+                    <span className="col-span-3 font-medium truncate" style={{ color: 'var(--color-charcoal)' }}>
+                      {l.profile?.name || '—'}
+                    </span>
+                    <span className="col-span-3 text-xs truncate" style={{ color: 'var(--color-charcoal-light)' }}>
+                      {l.profile?.email || '—'}
+                    </span>
+                    <span className="col-span-2 text-xs truncate" style={{ color: 'var(--color-charcoal-light)' }}>
+                      {l.address?.name || '—'}
+                    </span>
+                    <span className="col-span-2">
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ backgroundColor: statusColors[l.status] ?? '#e5e7eb', color: 'var(--color-charcoal)' }}
+                      >
+                        {statusLabels[l.status] ?? l.status}
+                      </span>
+                    </span>
+                    <span className="col-span-2 text-right text-xs" style={{ color: 'var(--color-charcoal-light)' }}>
+                      {format(parseISO(l.submitted_at ?? l.created_at), 'MMM d, yyyy')}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </>
         )}

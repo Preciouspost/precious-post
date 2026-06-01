@@ -48,6 +48,13 @@ export async function POST(req: Request) {
       letter_id,
       type: 'one_time_letter',
     },
+    payment_intent_data: {
+      metadata: {
+        user_id: user.id,
+        letter_id,
+        type: 'one_time_letter',
+      },
+    },
   })
 
   return NextResponse.json({ url: session.url })
